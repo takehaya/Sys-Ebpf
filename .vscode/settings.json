@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.go": "go",
+        "*.rs": "rust",
+        "bpf_helpers.h": "c"
+    }
+}
