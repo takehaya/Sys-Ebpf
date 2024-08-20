@@ -3,6 +3,8 @@ package ebpf::reader;
 use strict;
 use warnings;
 
+use ebpf::elf;
+
 sub new {
     my ($class, $file) = @_;
     my $self = { file => $file };
@@ -14,9 +16,9 @@ sub new {
 # ebpf binaryを読み出して、elfをパースする
 sub parse_ebpf {
     my ($self) = @_;
-    my $file = $self->{file};
-    my $data = read_file($file);
-    my $elf = parse_elf($data);
+    my $data = read_file($self->{file});
+    my $elfloader = ebpf::elf->new($data);
+    my $elf = $elfloader->parse_elf();
     return $elf;
 }
 
@@ -32,21 +34,6 @@ sub read_file {
     }
     close $fh;
     return $data;
-}
-
-# elfをパースする
-sub parse_elf {
-    my ($data) = @_;
-    my $elf = {};
-    my ($magic, $class, $endian, $version, $abi, $abi_version, $pad) = unpack('A4C2A5C3', substr($data, 0, 16));
-    $elf->{magic} = $magic;
-    $elf->{class} = $class;
-    $elf->{endian} = $endian;
-    $elf->{version} = $version;
-    $elf->{abi} = $abi;
-    $elf->{abi_version} = $abi_version;
-    $elf->{pad} = $pad;
-    return $elf;
 }
 
 1;
