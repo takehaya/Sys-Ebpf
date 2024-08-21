@@ -3,7 +3,7 @@ package ebpf::reader;
 use strict;
 use warnings;
 
-use ebpf::elf;
+use ebpf::elf::perser;
 
 sub new {
     my ($class, $file) = @_;
@@ -17,8 +17,14 @@ sub new {
 sub parse_ebpf {
     my ($self) = @_;
     my $data = read_file($self->{file});
-    my $elfloader = ebpf::elf->new($data);
+    my $elfloader = ebpf::elf::perser->new($data);
     my $elf = $elfloader->parse_elf();
+
+    # BPF Type only validate
+    if (! $elfloader->is_bpf_machine_type($elf->{e_machine})) {
+        die "Invalid ELF type: $elf->{e_type}";
+    }
+
     return $elf;
 }
 

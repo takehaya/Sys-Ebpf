@@ -1,7 +1,39 @@
-package ebpf::elf;
+package ebpf::elf::perser;
 
 use strict;
 use warnings;
+
+use ebpf::elf::machine_type;
+
+# elf64形式はこの通り
+# cf. https://refspecs.linuxfoundation.org/elf/gabi4+/ch4.eheader.html
+# $cat /usr/include/elf.h | grep -B16 " Elf64_Ehdr;"
+# typedef struct
+# {
+#   unsigned char e_ident[EI_NIDENT];     /* Magic number and other info */
+#   Elf64_Half    e_type;                 /* Object file type */
+#   Elf64_Half    e_machine;              /* Architecture */
+#   Elf64_Word    e_version;              /* Object file version */
+#   Elf64_Addr    e_entry;                /* Entry point virtual address */
+#   Elf64_Off     e_phoff;                /* Program header table file offset */
+#   Elf64_Off     e_shoff;                /* Section header table file offset */
+#   Elf64_Word    e_flags;                /* Processor-specific flags */
+#   Elf64_Half    e_ehsize;               /* ELF header size in bytes */
+#   Elf64_Half    e_phentsize;            /* Program header table entry size */
+#   Elf64_Half    e_phnum;                /* Program header table entry count */
+#   Elf64_Half    e_shentsize;            /* Section header table entry size */
+#   Elf64_Half    e_shnum;                /* Section header table entry count */
+#   Elf64_Half    e_shstrndx;             /* Section header string table index */
+# } Elf64_Ehdr;
+# typedef uint64_t	Elf64_Addr;
+# typedef uint16_t	Elf64_Half;
+# typedef uint64_t	Elf64_Off;
+# typedef int32_t	Elf64_Sword;
+# typedef int64_t	Elf64_Sxword;
+# typedef uint32_t	Elf64_Word;
+# typedef uint64_t	Elf64_Lword;
+# typedef uint64_t	Elf64_Xword;
+
 
 # ebpf binaryを読み出して、elfをパースします
 # コンストラクタにはファイルのバイナリデータが渡されます
@@ -18,8 +50,10 @@ sub parse_elf {
     my $elf = {};
 
     my $data = $self->{data};
+    my $byte_offset = 0;
+    my $byte_range = 16; # ELFヘッダは16バイト
     # ELFヘッダをパース
-    my ($magic, $class, $endian, $version, $abi, $abi_version) = unpack('A4C3A5C2', substr($data, 0, 16));
+    my ($magic, $class, $endian, $version, $abi, $abi_version) = unpack('A4C3A5C2', substr($data, $byte_offset, $byte_offset + $byte_range));
     $elf->{magic} = $magic;
     $elf->{class} = $class == 1 ? 'ELF32' : 'ELF64';
     $elf->{endian} = $endian == 1 ? 'little endian' : 'big endian';
@@ -27,12 +61,15 @@ sub parse_elf {
     $elf->{abi} = $abi;
     $elf->{abi_version} = $abi_version;
 
+    $byte_offset += $byte_range;
+    $byte_range = 32;
     # ELFファイルのサイズなどを取得
     my ($e_type, $e_machine, $e_version, $e_entry, $e_phoff, $e_shoff, $e_flags, $e_ehsize, $e_phentsize,
-        $e_phnum, $e_shentsize, $e_shnum, $e_shstrndx) = unpack('S S L Q Q Q L S S S S S S', substr($data, 16, 48));
+        $e_phnum, $e_shentsize, $e_shnum, $e_shstrndx) = unpack('S S L Q Q Q L S S S S S S', substr($data, $byte_offset, $byte_offset + $byte_range));
 
     $elf->{e_type} = $e_type;
     $elf->{e_machine} = $e_machine;
+    $elf->{e_machine_name} = ebpf::elf::machine_type->get_machine_name($e_machine);
     $elf->{e_version} = $e_version;
     $elf->{e_entry} = $e_entry;
     $elf->{e_phoff} = $e_phoff;
@@ -114,4 +151,9 @@ sub parse_symbols {
     return \@symbols;
 }
 
+
+sub is_bpf_machine_type {
+    my ($self, $e_machine) = @_;
+    return $e_machine == ebpf::elf::machine_type->EM_BPF;
+}
 1;
