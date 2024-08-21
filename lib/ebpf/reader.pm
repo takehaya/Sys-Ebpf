@@ -3,8 +3,9 @@ package ebpf::reader;
 use strict;
 use warnings;
 
-use ebpf::elf::perser;
+use ebpf::elf::parser;
 
+# cf. https://www.ietf.org/archive/id/draft-thaler-bpf-elf-00.html
 sub new {
     my ($class, $file) = @_;
     my $self = { file => $file };
@@ -12,12 +13,11 @@ sub new {
     return $self;
 }
 
-
 # ebpf binaryを読み出して、elfをパースする
 sub parse_ebpf {
     my ($self) = @_;
     my $data = read_file($self->{file});
-    my $elfloader = ebpf::elf::perser->new($data);
+    my $elfloader = ebpf::elf::parser->new($data);
     my $elf = $elfloader->parse_elf();
 
     # BPF Type only validate

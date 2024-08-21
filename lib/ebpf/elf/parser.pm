@@ -1,9 +1,9 @@
-package ebpf::elf::perser;
+package ebpf::elf::parser;
 
 use strict;
 use warnings;
 
-use ebpf::elf::machine_type;
+use ebpf::elf::machine_type qw(EM_BPF);
 
 # elf64形式はこの通り
 # cf. https://refspecs.linuxfoundation.org/elf/gabi4+/ch4.eheader.html
@@ -154,6 +154,6 @@ sub parse_symbols {
 
 sub is_bpf_machine_type {
     my ($self, $e_machine) = @_;
-    return $e_machine == ebpf::elf::machine_type->EM_BPF;
+    return $e_machine == EM_BPF;
 }
 1;
