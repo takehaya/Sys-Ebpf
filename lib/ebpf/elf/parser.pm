@@ -82,8 +82,12 @@ sub parse_elf {
     $elf->{e_shnum} = $e_shnum;
     $elf->{e_shstrndx} = $e_shstrndx;
 
+    # section tableのセクション名を取得するために文字列テーブルセクションを取得
+    my $strtab_section_offset = $elf->{e_shoff} + $elf->{e_shstrndx} * $elf->{e_shentsize};
+    my $strtab_offset = unpack('Q', substr($data, $strtab_section_offset + 24, 8));  # sh_offset フィールドの位置から取得
+
     # セクションヘッダとシンボルテーブルをパースするための追加処理
-    $elf->{sections} = parse_sections($data, $elf->{e_shoff}, $elf->{e_shnum}, $elf->{e_shentsize});
+    $elf->{sections} = parse_sections($data, $elf->{e_shoff}, $elf->{e_shnum}, $elf->{e_shentsize}, $strtab_offset);
     $elf->{symbols} = parse_symbols($data, $elf->{sections}, $elf->{e_shstrndx});
 
     return $elf;
@@ -91,13 +95,17 @@ sub parse_elf {
 
 # セクションヘッダをパースする
 sub parse_sections {
-    my ($data, $shoff, $shnum, $shentsize) = @_;
+    my ($data, $shoff, $shnum, $shentsize, $strtab_offset) = @_;
     my @sections;
 
     for my $i (0 .. $shnum - 1) {
         my $offset = $shoff + $i * $shentsize;
-        my ($sh_name, $sh_type, $sh_flags, $sh_addr, $sh_offset, $sh_size, $sh_link, $sh_info, $sh_addralign, $sh_entsize) =
+        my ($sh_name_offset, $sh_type, $sh_flags, $sh_addr, $sh_offset, $sh_size, $sh_link, $sh_info, $sh_addralign, $sh_entsize) =
             unpack('L L Q Q Q Q L L Q Q', substr($data, $offset, $shentsize));
+
+        # セクション名を取得
+        my $name_offset = $strtab_offset + $sh_name_offset;
+        my $sh_name = unpack('Z*', substr($data, $name_offset));
 
         push @sections, {
             sh_name => $sh_name,
@@ -115,6 +123,7 @@ sub parse_sections {
 
     return \@sections;
 }
+
 
 # シンボルテーブルをパースする
 sub parse_symbols {
