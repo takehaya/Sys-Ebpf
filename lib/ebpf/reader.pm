@@ -17,6 +17,7 @@ sub new {
 sub parse_ebpf {
     my ($self) = @_;
     my $data = read_file($self->{file});
+    $self->{raw_elf_data} = $data;
     my $elfloader = ebpf::elf::parser->new($data);
     my $elf = $elfloader->parse_elf();
 
