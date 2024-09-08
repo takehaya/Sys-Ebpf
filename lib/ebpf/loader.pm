@@ -45,6 +45,16 @@ sub find_symbol_table_from_idx {
     return undef;
 }
 
+sub find_symbol_table_from_name {
+    my ($symbols, $name) = @_;
+    for my $symbol (@$symbols) {
+        if ($symbol->{sh_name} eq $name) {
+            return $symbol;
+        }
+    }
+    return undef;
+}
+
 sub attach_bpf_map {
     my ($self, $map_name, $map_type, $key_size, $value_size, $max_entries, $map_flags) = @_;
     my $bpfelf = $self->{bpfelf};
@@ -137,21 +147,18 @@ sub attach_bpf_program {
 # r_infoからシンボルインデックスを取得し、そのシンボルのアドレスをシンボルテーブル（.symtab）から取得します。
 # 修正すべきインストラクションに、シンボルのアドレスを適用して、正しいマップへの参照に書き換えます。
 sub apply_relocations {
-    my ($self, $reloc_sections, $elf, $map_data) = @_;
+    my ($self, $prob_section, $reloc_sections, $elf, $map_data) = @_;
     my $symbols_section = $elf->{symbols};
-    my $offset = 0;
     for my $reloc_section (@$reloc_sections) {
         print "reloc_section: ", Dumper($reloc_section);
         my $r_info = $reloc_section->{r_info};
-        my $r_offset = $reloc_section->{r_offset};
-        my $offset += $r_offset;
-        $r_offset = $offset;
+        my $r_offset = $reloc_section->{r_offset} + $prob_section->{sh_offset}; 
 
         my $sym_index = $r_info >> 32; # シンボルインデックスを取得
         my $reloc_type = $r_info & 0xFFFFFFFF; # リロケーションタイプを取得
-
-        # シンボルテーブルからシンボルを取得
-        # シンボル名を取得
+        # シンボルテーブルからrelocation対象になり得るシンボル名を取得
+        # print "sym_index: $sym_index\n";
+        # print "symbols_section: ", Dumper($symbols_section);
         my $symbol = find_symbol_table_from_idx($symbols_section, $sym_index);
         if (!$symbol) {
             print "Symbol not found for index: $sym_index\n";
@@ -162,7 +169,8 @@ sub apply_relocations {
             print "Symbol not found for index: $sym_index\n";
             next;
         }
-        # `$map_data` の中のタプルを確認して、期待してるマップ名が一致するかチェック
+        # `$map_data` の中のタプルを確認して、期待してるマップ名が存在するかチェック(fdを取得)
+        print "find map: $sym_name\n";
         my $map_fd = undef;
         for my $tuple (@$map_data) {
             print "tuple: ", Dumper($tuple);
@@ -174,22 +182,7 @@ sub apply_relocations {
         }
 
         print "Symbol: $sym_name, Map FD: $map_fd\n";
-        if (defined $map_fd) {
-            # 指定されたオフセット位置に4バイトの整数（マップFD）を書き換える
-            # # substr($self->{reader}->{raw_elf_data}, $r_offset, 4, pack("L", $map_fd));
-            # # デバッグ出力でデータ構造を確認
-            # my $before_data = substr($self->{reader}->{raw_elf_data}, $r_offset, 4);
-
-            # # ELFデータの指定されたオフセット位置に4バイトの整数（マップFD）を書き換える
-            # substr($self->{reader}->{raw_elf_data}, $r_offset, 4, pack("L", $map_fd));
-
-            # # 変更後のデータを取得
-            # my $after_data = substr($self->{reader}->{raw_elf_data}, $r_offset, 4);
-
-            # # デバッグ出力で確認
-            # print "Before: " . unpack("L", $before_data) . "\n";
-            # print "After: " . unpack("L", $after_data) . "\n";
-    
+        if (defined $map_fd) {    
             # --- ここから追加 ---
             # # 指定されたオフセット位置にある `lddw` 命令（16バイト）を取得
             # my $bpf_insn = substr($self->{reader}->{raw_elf_data}, $r_offset, 16);
@@ -205,6 +198,7 @@ sub apply_relocations {
             # substr($self->{reader}->{raw_elf_data}, $r_offset, 16, $new_bpf_insn);
             #---
             # `lddw` の場合は16バイト分の命令を取得する
+            # $r_offset += 8;
             my $bpf_insn = substr($self->{reader}->{raw_elf_data}, $r_offset, 16);  # 16バイトを取得
             print "Before relocation (offset $r_offset): " . unpack('H*', $bpf_insn) . "\n";  # デバッグ出力
 
@@ -262,12 +256,14 @@ sub attach_bpf {
     my $map_name = "kprobe_map";
     my $map_fd = $self->attach_bpf_map($map_name, 1, 4, 8, 1, 0);
 
-    print Dumper($bpfelf->{relocations});
+    # print Dumper($bpfelf->{sections});
+    # print Dumper($bpfelf->{relocations});
     # リロケーションを適用
     print ".rel" . $section_name . "\n";
     my $reloc_section = $bpfelf->{relocations}{".rel" . $section_name};
+    my $prob_section = find_symbol_table_from_name($bpfelf->{sections}, $section_name);
     if (defined $reloc_section) {
-        $self->apply_relocations($reloc_section, $bpfelf, [[$map_name, $map_fd]]);
+        $self->apply_relocations($prob_section, $reloc_section, $bpfelf, [[$map_name, $map_fd]]);
     }
    
     # BPF プログラムをロード
