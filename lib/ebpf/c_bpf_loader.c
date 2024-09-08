@@ -18,7 +18,13 @@
 #include <errno.h>
 #include <stdio.h>
 
-int load_bpf_program(int prog_type, const void *insns, size_t insn_cnt, const char *license, char *log_buf, size_t log_buf_sz) {
+int load_bpf_program(
+    int prog_type, 
+    const void *insns, 
+    size_t insn_cnt, 
+    const char *license, 
+    char *log_buf, 
+    size_t log_buf_sz) {
     union bpf_attr attr;
     memset(&attr, 0, sizeof(attr));
 
@@ -38,7 +44,24 @@ int load_bpf_program(int prog_type, const void *insns, size_t insn_cnt, const ch
 }
 
 
-#line 42 "lib/ebpf/c_bpf_loader.c"
+int load_bpf_map(int map_type, int key_size, int value_size, int max_entries, int map_flags) {
+    union bpf_attr attr;
+    memset(&attr, 0, sizeof(attr));
+
+    attr.map_type = map_type;
+    attr.key_size = key_size;
+    attr.value_size = value_size;
+    attr.max_entries = max_entries;
+    attr.map_flags = map_flags;
+
+    int fd = syscall(SYS_bpf, BPF_MAP_CREATE, &attr, sizeof(attr));
+    if (fd < 0) {
+        perror("BPF map creation failed");
+    }
+    return fd;
+}
+
+#line 66 "lib/ebpf/c_bpf_loader.c"
 #ifndef PERL_UNUSED_VAR
 #  define PERL_UNUSED_VAR(var) if (0) var = var
 #endif
@@ -182,7 +205,7 @@ S_croak_xs_usage(const CV *const cv, const char *const params)
 #  define newXS_deffile(a,b) Perl_newXS_deffile(aTHX_ a,b)
 #endif
 
-#line 186 "lib/ebpf/c_bpf_loader.c"
+#line 210 "lib/ebpf/c_bpf_loader.c"
 
 XS_EUPXS(XS_ebpf__c_bpf_loader_load_bpf_program); /* prototype to pass -Wmissing-prototypes */
 XS_EUPXS(XS_ebpf__c_bpf_loader_load_bpf_program)
@@ -205,13 +228,43 @@ XS_EUPXS(XS_ebpf__c_bpf_loader_load_bpf_program)
 ;
 	int	RETVAL;
 	dXSTARG;
-#line 43 "lib/ebpf/c_bpf_loader.xs"
+#line 67 "lib/ebpf/c_bpf_loader.xs"
 {
     char *insns_ptr = SvPV_nolen(insns);
     char *log_buf_ptr = SvPV_nolen(log_buf);
     RETVAL = load_bpf_program(prog_type, insns_ptr, insn_cnt, license, log_buf_ptr, log_buf_sz);
 }
-#line 215 "lib/ebpf/c_bpf_loader.c"
+#line 239 "lib/ebpf/c_bpf_loader.c"
+	XSprePUSH; PUSHi((IV)RETVAL);
+    }
+    XSRETURN(1);
+}
+
+
+XS_EUPXS(XS_ebpf__c_bpf_loader_load_bpf_map); /* prototype to pass -Wmissing-prototypes */
+XS_EUPXS(XS_ebpf__c_bpf_loader_load_bpf_map)
+{
+    dVAR; dXSARGS;
+    if (items != 5)
+       croak_xs_usage(cv,  "map_type, key_size, value_size, max_entries, map_flags");
+    {
+	int	map_type = (int)SvIV(ST(0))
+;
+	int	key_size = (int)SvIV(ST(1))
+;
+	int	value_size = (int)SvIV(ST(2))
+;
+	int	max_entries = (int)SvIV(ST(3))
+;
+	int	map_flags = (int)SvIV(ST(4))
+;
+	int	RETVAL;
+	dXSTARG;
+#line 83 "lib/ebpf/c_bpf_loader.xs"
+{
+    RETVAL = load_bpf_map(map_type, key_size, value_size, max_entries, map_flags);
+}
+#line 269 "lib/ebpf/c_bpf_loader.c"
 	XSprePUSH; PUSHi((IV)RETVAL);
     }
     XSRETURN(1);
@@ -246,6 +299,7 @@ XS_EXTERNAL(boot_ebpf__c_bpf_loader)
 #endif
 
         newXS_deffile("ebpf::c_bpf_loader::load_bpf_program", XS_ebpf__c_bpf_loader_load_bpf_program);
+        newXS_deffile("ebpf::c_bpf_loader::load_bpf_map", XS_ebpf__c_bpf_loader_load_bpf_map);
 #if PERL_VERSION_LE(5, 21, 5)
 #  if PERL_VERSION_GE(5, 9, 0)
     if (PL_unitcheckav)

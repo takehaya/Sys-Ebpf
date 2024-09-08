@@ -3,6 +3,7 @@ package ebpf::elf::parser;
 use strict;
 use warnings;
 
+use ebpf::elf::section_type qw(SHT_RELA SHT_REL SHT_SYMTAB);
 use ebpf::elf::machine_type qw(EM_BPF);
 
 # elf64形式はこの通り
@@ -89,11 +90,19 @@ sub parse_elf {
     # セクションヘッダとシンボルテーブルをパースするための追加処理
     $elf->{sections} = parse_sections($data, $elf->{e_shoff}, $elf->{e_shnum}, $elf->{e_shentsize}, $strtab_offset);
     $elf->{symbols} = parse_symbols($data, $elf->{sections}, $elf->{e_shstrndx});
-
+    $elf->{relocations} = parse_relocations($data, $elf->{sections});
     return $elf;
 }
 
 # セクションヘッダをパースする
+# args
+#   data: ELFバイナリデータの文字列
+#   shoff: セクションヘッダテーブルのオフセット
+#   shnum: セクション数
+#   shentsize: セクションヘッダのサイズ
+#   strtab_offset: セクション名の文字列テーブルのオフセット
+# return
+#   sections: セクション情報の配列
 sub parse_sections {
     my ($data, $shoff, $shnum, $shentsize, $strtab_offset) = @_;
     my @sections;
@@ -124,8 +133,13 @@ sub parse_sections {
     return \@sections;
 }
 
-
 # シンボルテーブルをパースする
+# args
+#   data: ELFバイナリデータの文字列
+#   sections: セクション情報の配列
+#   strtab_idx: シンボルテーブルの文字列テーブルのインデックス
+# return
+#   symbols: シンボルテーブルのハッシュのリファレンス
 sub parse_symbols {
     my ($data, $sections, $strtab_idx) = @_;
     my @symbols;
@@ -135,7 +149,7 @@ sub parse_symbols {
     my $strtab_size = $strtab_section->{sh_size};
 
     for my $section (@$sections) {
-        next unless $section->{sh_type} == 2; # SYMTAB
+        next unless $section->{sh_type} == SHT_SYMTAB; # SYMTAB
 
         my $num_symbols = $section->{sh_size} / $section->{sh_entsize};
         for my $i (0 .. $num_symbols - 1) {
@@ -158,6 +172,50 @@ sub parse_symbols {
     }
 
     return \@symbols;
+}
+
+# リロケーションテーブルをパースする
+# args
+#   data: ELFバイナリデータの文字列
+#   sections: セクション情報の配列
+# return
+#   relocations: リロケーションテーブルのハッシュのリファレンス
+sub parse_relocations {
+    my ($data, $sections) = @_;
+    my %relocations;
+    
+    for my $section (@$sections) {
+        unless ($section->{sh_type} == SHT_REL || $section->{sh_type} == SHT_RELA) {
+            next;
+        }
+        my @relocation;
+        my $sh_type = $section->{sh_type};
+        my $num_relocations = $section->{sh_size} / $section->{sh_entsize};
+
+        for my $i (0 .. $num_relocations - 1) {
+            my $offset = $section->{sh_offset} + $i * $section->{sh_entsize};
+            my ($r_offset, $r_info, $r_addend);
+
+            # リロケーションテーブルのエントリをパース
+            # 64ビットの場合はQで8バイトを読み込む(TODO: 32ビットの場合はLで4バイトを読み込む)
+            if ($sh_type == SHT_REL) {
+                ($r_offset, $r_info) = unpack('Q<Q<', substr($data, $offset, $section->{sh_entsize}));
+                $r_addend = undef;
+            } else { # SHT_RELA
+                ($r_offset, $r_info, $r_addend) = unpack('Q<Q<Q<', substr($data, $offset, $section->{sh_entsize}));
+            }
+
+            push @relocation, {
+                sh_type => $sh_type,
+                r_offset => $r_offset,
+                r_info => $r_info,
+                r_addend => $r_addend,
+            };
+        }
+        $relocations{$section->{sh_name}} = \@relocation;
+    }
+
+    return \%relocations;
 }
 
 
