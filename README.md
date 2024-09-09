@@ -9,7 +9,12 @@ make test
 make install
 ```
 
-develop for iteration
+### running unittest
+```shell
+prove -v -l t/*.t
+```
+
+### develop for iteration
 ```shell
 make clean
 perl Makefile.PL
