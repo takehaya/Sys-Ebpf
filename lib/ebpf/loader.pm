@@ -3,8 +3,10 @@ package ebpf::loader;
 use strict;
 use warnings;
 
+use ebpf::asm;
 use ebpf::reader;
 use ebpf::c_bpf_loader;
+
 use Data::Dumper;
 
 use ebpf::elf::section_type qw(SHT_PROGBITS);
@@ -172,7 +174,7 @@ sub unpin_bpf_map {
 # r_offsetを使って、修正すべき命令（インストラクション）をkprobe/sys_execveセクション内から特定します。
 # r_infoからシンボルインデックスを取得し、そのシンボルのアドレスをシンボルテーブル（.symtab）から取得します。
 # 修正すべきインストラクションに、シンボルのアドレスを適用して、正しいマップへの参照に書き換えます。
-sub apply_relocations {
+sub apply_map_relocations {
     my ($self, $prob_section, $reloc_sections, $elf, $map_data) = @_;
     my $symbols_section = $elf->{symbols};
     for my $reloc_section (@$reloc_sections) {
@@ -182,9 +184,8 @@ sub apply_relocations {
 
         my $sym_index = $r_info >> 32; # シンボルインデックスを取得
         my $reloc_type = $r_info & 0xFFFFFFFF; # リロケーションタイプを取得
+        
         # シンボルテーブルからrelocation対象になり得るシンボル名を取得
-        # print "sym_index: $sym_index\n";
-        # print "symbols_section: ", Dumper($symbols_section);
         my $symbol = find_symbol_table_from_idx($symbols_section, $sym_index);
         if (!$symbol) {
             print "Symbol not found for index: $sym_index\n";
@@ -195,6 +196,7 @@ sub apply_relocations {
             print "Symbol not found for index: $sym_index\n";
             next;
         }
+        
         # `$map_data` の中のタプルを確認して、期待してるマップ名が存在するかチェック(fdを取得)
         print "find map: $sym_name\n";
         my $map_fd = undef;
@@ -212,24 +214,21 @@ sub apply_relocations {
             # --- ここから追加 ---
             # # 指定されたオフセット位置にある `lddw` 命令（16バイト）を取得
             my $bpf_insn = substr($self->{reader}->{raw_elf_data}, $r_offset, 16);  # 16バイトを取得
+            my $bpf_insn_len = length($bpf_insn);
             print "Before relocation (offset $r_offset): " . unpack('H*', $bpf_insn) . "\n";  # デバッグ出力
 
-            # 1つ目の命令は上位32ビット、2つ目の命令は下位32ビットの即値を含む
-            my ($code1, $dst_src1, $off1, $imm_high, $code2, $dst_src2, $off2, $imm_low) = unpack('CCsLCCsL', $bpf_insn);
+            my ($high, $low) = ebpf::asm::deserialize_128bit_instruction($bpf_insn);
 
-            # show debug
-            print "code1=$code1, dst_src1=$dst_src1, off1=$off1, imm_high=$imm_high, code2=$code2, dst_src2=$dst_src2, off2=$off2, imm_low=$imm_low\n";  # デバッグ出力
-            # マップFDを64ビットの即値として設定
-            # imm_low(32bit) に FD の下位ビットを、 imm_high(32bit) に上位ビットを設定
-            $imm_low = ($map_fd >> 32);
-            $imm_high  = $map_fd;
+            # 即値 (64ビット) にマップFDを設定
+            $high->set_imm($map_fd);
+            $low->set_imm($map_fd>>32);
 
             # src_reg に PSEUDO_MAP_FD (1) を設定
-            print "dst_src1: $dst_src1\n";
-            $dst_src1 = ($dst_src1 <<4) | 1;  # 上位4ビットをそのままにして、下位4ビットに1をセット
+            $high->set_src_reg(1);
+
             # 修正後の命令をパックして、元の場所に書き戻す
-            my $new_bpf_insn = pack('CCsLCCsL', $code1, $dst_src1, $off1, $imm_high, $code2, $dst_src2, $off2, $imm_low);
-            substr($self->{reader}->{raw_elf_data}, $r_offset, 16, $new_bpf_insn);  # 16バイト書き戻す
+            my $new_bpf_insn = ebpf::asm::serialize_128bit_instruction($high, $low);
+            substr($self->{reader}->{raw_elf_data}, $r_offset, 16, $new_bpf_insn);
 
             # 書き換えた後の命令を出力
             my $after_bpf_insn = substr($self->{reader}->{raw_elf_data}, $r_offset, 16);
@@ -261,7 +260,7 @@ sub attach_bpf {
     my $reloc_section = $bpfelf->{relocations}{".rel" . $section_name};
     my $prob_section = find_symbol_table_from_name($bpfelf->{sections}, $section_name);
     if (defined $reloc_section) {
-        $self->apply_relocations($prob_section, $reloc_section, $bpfelf, [[$map_name, $map_fd]]);
+        $self->apply_map_relocations($prob_section, $reloc_section, $bpfelf, [[$map_name, $map_fd]]);
     }
    
     # BPF プログラムをロード
