@@ -230,4 +230,4 @@ Disassembly of section .symtab:
 ## elfパーサーの実装方針
 [https://gist.github.com/x0nu11byt3/bcb35c3de461e5fb66173071a2379779](ELF Format Cheatsheet)を参考にしておく
 
-- symbolは
+
