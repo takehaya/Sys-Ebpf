@@ -24,7 +24,7 @@ sub new {
     return $self;
 }
 
-sub load {
+sub load_elf {
     my ($self) = @_;
     my $file = $self->{file};
 
@@ -57,7 +57,7 @@ sub find_symbol_table_from_name {
     return undef;
 }
 
-sub attach_bpf_map {
+sub load_bpf_map {
     my ($self, $map_name, $map_type, $key_size, $value_size, $max_entries, $map_flags) = @_;
     my $bpfelf = $self->{bpfelf};
 
@@ -81,6 +81,7 @@ sub attach_bpf_map {
     my $bpf_map = substr($self->{reader}->{raw_elf_data}, $bpf_section->{sh_offset}, $bpf_section->{sh_size});
 
     # BPF マップを作成
+    print "map_type: $map_type". "key_size: $key_size" ."\n";
     my $fd = ebpf::c_bpf_loader::load_bpf_map($map_type, $key_size, $value_size, $max_entries, $map_flags);
 
     if ($fd < 0) {
@@ -171,6 +172,13 @@ sub unpin_bpf_map {
         die "BPF map unpinning failed: $!\n";
     }
 }
+
+# リロケーションを適用
+# args:
+#   prob_section: プログラムセクション
+#   reloc_sections: リロケーションセクション
+#   elf: ELFデータ
+#   map_data: マップデータのリファレンス
 # r_offsetを使って、修正すべき命令（インストラクション）をkprobe/sys_execveセクション内から特定します。
 # r_infoからシンボルインデックスを取得し、そのシンボルのアドレスをシンボルテーブル（.symtab）から取得します。
 # 修正すべきインストラクションに、シンボルのアドレスを適用して、正しいマップへの参照に書き換えます。
@@ -240,33 +248,50 @@ sub apply_map_relocations {
     print "Final instructions:\n";
 }
 
-sub attach_bpf {
-    my ($self, $section_name) = @_;
+# BPF プログラムとマップをロード
+# args:
+#   section_name: BPF プログラムのセクション名
+#   map_attr_ref: マップ名と属性の組になったhashのリファレンス
+# return:
+#   map_data: マップ名とFDの組になったhashのリファレンス
+#   prog_fd: プログラムFD
+sub load_bpf {
+    my ($self, $section_name, $map_attr_ref) = @_;
     my $bpfelf = $self->{bpfelf};
+    my %map_attr = %$map_attr_ref;
 
-    # BPF マップをロード(あとでlistにする)
-    my $map_name = "kprobe_map";
+    my @map_data;
+    # map_attr_refの各キー（マップ名）に対して処理を実行
+    for my $map_name (keys %map_attr) {
+        my $attr = $map_attr{$map_name};
 
-    # debugように、既存のマップを削除・固定をするようにしてる
-    unpin_bpf_map("/sys/fs/bpf/$map_name");
-    my $map_fd = $self->attach_bpf_map($map_name, 1, 4, 8, 1, 0);
-    if ($map_fd < 0) {
-        die "Failed to load BPF map: $map_fd\n";
+        my $map_fd = $self->load_bpf_map(
+            $map_name,
+            $attr->{map_type} || 0,
+            $attr->{key_size} || 0,
+            $attr->{value_size} || 0,
+            $attr->{max_entries} || 0,
+            $attr->{map_flags} || 0,
+        );
+        if ($map_fd < 0) {
+            die "Failed to load BPF map: $map_name (FD: $map_fd)\n";
+        }
+        push @map_data, [$map_name, $map_fd];
     }
-    pin_bpf_map($map_fd, "/sys/fs/bpf/$map_name");
-    
+
     # リロケーションを適用
     print ".rel" . $section_name . "\n";
     my $reloc_section = $bpfelf->{relocations}{".rel" . $section_name};
     my $prob_section = find_symbol_table_from_name($bpfelf->{sections}, $section_name);
     if (defined $reloc_section) {
-        $self->apply_map_relocations($prob_section, $reloc_section, $bpfelf, [[$map_name, $map_fd]]);
+        $self->apply_map_relocations($prob_section, $reloc_section, $bpfelf, \@map_data);
     }
-   
+
+    # todo: bpfprobが複数あるケースにも対応する
     # BPF プログラムをロード
     my $prog_fd = $self->attach_bpf_program($section_name);
 
-    return ($map_fd, $prog_fd);
+    return (\@map_data, $prog_fd);
 }
 
 1;
