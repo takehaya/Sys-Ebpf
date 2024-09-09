@@ -131,7 +131,10 @@ sub attach_bpf_program {
     my $fd = ebpf::c_bpf_loader::load_bpf_program(
         BPF_PROG_TYPE_KPROBE, 
         $bpf_prog, 
-        $insn_cnt, $license, $log_buf, length($log_buf));
+        $insn_cnt, $license, 
+        3, # log level
+        $log_buf, 
+        length($log_buf));
 
     if ($fd < 0) {
         print Dumper($log_buf);
@@ -143,6 +146,29 @@ sub attach_bpf_program {
     return $fd;
 }
 
+sub pin_bpf_map {
+    my ($map_fd, $pin_path) = @_;
+
+    # bpf_obj_pin syscallを呼び出してマップを指定のパスに保存する
+    my $res = ebpf::c_bpf_loader::pin_bpf_map($map_fd, $pin_path);
+
+    if ($res < 0) {
+        die "Failed to pin BPF map: $res\n";
+    }
+
+    print "BPF map pinned successfully at $pin_path\n";
+}
+
+sub unpin_bpf_map {
+    my ($pin_path) = @_;
+
+    # ファイルを削除する
+    if (unlink($pin_path)) {
+        print "BPF map unpinned successfully from $pin_path\n";
+    } else {
+        die "BPF map unpinning failed: $!\n";
+    }
+}
 # r_offsetを使って、修正すべき命令（インストラクション）をkprobe/sys_execveセクション内から特定します。
 # r_infoからシンボルインデックスを取得し、そのシンボルのアドレスをシンボルテーブル（.symtab）から取得します。
 # 修正すべきインストラクションに、シンボルのアドレスを適用して、正しいマップへの参照に書き換えます。
@@ -185,20 +211,6 @@ sub apply_relocations {
         if (defined $map_fd) {    
             # --- ここから追加 ---
             # # 指定されたオフセット位置にある `lddw` 命令（16バイト）を取得
-            # my $bpf_insn = substr($self->{reader}->{raw_elf_data}, $r_offset, 16);
-            # print "Before relocation (offset $r_offset): " . unpack('H*', $bpf_insn) . "\n";  # デバッグ出力
-            # my ($code, $dst_src, $off, $imm_high, $imm_low) = unpack('CCsLL', $bpf_insn);
-
-            # # マップFDを適切に設定（FDを64ビットに分割）
-            # $imm_high = 0;  # 上位32ビットは0
-            # $imm_low = $map_fd;  # 下位32ビットにFDを設定
-
-            # # 新しい命令をパックして元の場所に書き戻す
-            # my $new_bpf_insn = pack('CCsLL', $code, $dst_src, $off, $imm_high, $imm_low);
-            # substr($self->{reader}->{raw_elf_data}, $r_offset, 16, $new_bpf_insn);
-            #---
-            # `lddw` の場合は16バイト分の命令を取得する
-            # $r_offset += 8;
             my $bpf_insn = substr($self->{reader}->{raw_elf_data}, $r_offset, 16);  # 16バイトを取得
             print "Before relocation (offset $r_offset): " . unpack('H*', $bpf_insn) . "\n";  # デバッグ出力
 
@@ -208,9 +220,13 @@ sub apply_relocations {
             # show debug
             print "code1=$code1, dst_src1=$dst_src1, off1=$off1, imm_high=$imm_high, code2=$code2, dst_src2=$dst_src2, off2=$off2, imm_low=$imm_low\n";  # デバッグ出力
             # マップFDを64ビットの即値として設定
-            $imm_high = 0;  # 上位32ビットを0に
-            $imm_low = $map_fd;  # 下位32ビットにFDを設定
+            # imm_low(32bit) に FD の下位ビットを、 imm_high(32bit) に上位ビットを設定
+            $imm_low = ($map_fd >> 32);
+            $imm_high  = $map_fd;
 
+            # src_reg に PSEUDO_MAP_FD (1) を設定
+            print "dst_src1: $dst_src1\n";
+            $dst_src1 = ($dst_src1 <<4) | 1;  # 上位4ビットをそのままにして、下位4ビットに1をセット
             # 修正後の命令をパックして、元の場所に書き戻す
             my $new_bpf_insn = pack('CCsLCCsL', $code1, $dst_src1, $off1, $imm_high, $code2, $dst_src2, $off2, $imm_low);
             substr($self->{reader}->{raw_elf_data}, $r_offset, 16, $new_bpf_insn);  # 16バイト書き戻す
@@ -218,29 +234,6 @@ sub apply_relocations {
             # 書き換えた後の命令を出力
             my $after_bpf_insn = substr($self->{reader}->{raw_elf_data}, $r_offset, 16);
             print "After relocation (offset $r_offset): " . unpack('H*', $after_bpf_insn) . "\n";  # デバッグ出力
-            # debug end
-
-          # 指定されたオフセット位置にあるBPF命令（8バイト）を取得
-            # my $bpf_insn = substr($self->{reader}->{raw_elf_data}, $r_offset, 8);
-            # my ($code, $dst_src, $off, $imm) = unpack('CCsL', $bpf_insn);
-
-            # print "Before relocation: code=$code, dst_src=$dst_src, off=$off, imm=$imm\n";
-            # if ($imm != 0){
-            #     print "imm is not 0\n";
-            #     next;
-            # }
-            # # `imm` フィールドを書き換える（マップFDを適用）
-            # $imm = $map_fd;
-
-            # # 新しい命令をパックして元の場所に書き戻す
-            # my $new_bpf_insn = pack('CCsL', $code, $dst_src, $off, $imm);
-            # substr($self->{reader}->{raw_elf_data}, $r_offset, 8, $new_bpf_insn);
-
-            # # 変更後のデータを確認
-            # my $after_bpf_insn = substr($self->{reader}->{raw_elf_data}, $r_offset, 8);
-            # my ($new_code, $new_dst_src, $new_off, $new_imm) = unpack('CCsL', $after_bpf_insn);
-            # print "After relocation: code=$new_code, dst_src=$new_dst_src, off=$new_off, imm=$new_imm\n";
-
         } else {
             print "No matching map found for symbol: $sym_name\n";
         }
@@ -254,10 +247,15 @@ sub attach_bpf {
 
     # BPF マップをロード(あとでlistにする)
     my $map_name = "kprobe_map";
-    my $map_fd = $self->attach_bpf_map($map_name, 1, 4, 8, 1, 0);
 
-    # print Dumper($bpfelf->{sections});
-    # print Dumper($bpfelf->{relocations});
+    # debugように、既存のマップを削除・固定をするようにしてる
+    unpin_bpf_map("/sys/fs/bpf/$map_name");
+    my $map_fd = $self->attach_bpf_map($map_name, 1, 4, 8, 1, 0);
+    if ($map_fd < 0) {
+        die "Failed to load BPF map: $map_fd\n";
+    }
+    pin_bpf_map($map_fd, "/sys/fs/bpf/$map_name");
+    
     # リロケーションを適用
     print ".rel" . $section_name . "\n";
     my $reloc_section = $bpfelf->{relocations}{".rel" . $section_name};

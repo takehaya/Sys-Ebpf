@@ -13,6 +13,6 @@ our @ISA = qw(Exporter DynaLoader);
 bootstrap ebpf::c_bpf_loader;
 
 # Perlサブとしてのエクスポート
-our @EXPORT_OK = qw(load_bpf_program load_bpf_map);
+our @EXPORT_OK = qw(load_bpf_program load_bpf_map pin_bpf_map);
 
 1;
