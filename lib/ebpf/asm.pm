@@ -39,8 +39,8 @@ sub deserialize {
     
     my $self = {
         code     => $code,
-        dst_reg  => $dst_src >> 4,
-        src_reg  => $dst_src & 0xF,
+        dst_reg  => ($dst_src & 0b11110000)>>4,
+        src_reg  => $dst_src & 0b00001111,
         off      => $off,
         imm      => $imm,
     };

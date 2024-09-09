@@ -9,20 +9,20 @@ use ebpf::asm;
 
 my $asm = ebpf::asm->new(
     code    => 0x18,       # opcode(lddw)
-    dst_reg => 1,          # destination register (r1)
-    src_reg => 1,          # source register(Pseudo map fd)
+    dst_reg => 0x2,          # destination register (r2)
+    src_reg => 0x1,          # source register(Pseudo map fd)
     off     => 0,          # offset
     imm     => 0x3  # immediate value (map fd)
 );
 
 my $serialized = $asm->serialize();
 ok(length($serialized) == 8, "Serialized instruction is 8 bytes");
-is(unpack('H*', $serialized), '1811000003000000', 'Serialized output is correct');
+is(unpack('H*', $serialized), '1821000003000000', 'Serialized output is correct');
 
 my $deserialized = ebpf::asm->deserialize($serialized);
 is($deserialized->get_code(), 0x18, "Deserialized opcode matches");
 is($deserialized->get_imm(), 3, "Deserialized immediate matches");
+is($deserialized->get_dst_reg(), 2, "Deserialized destination register matches");
 is($deserialized->get_src_reg(), 1, "Deserialized source register matches");
-is($deserialized->get_dst_reg(), 1, "Deserialized destination register matches");
 
 done_testing();
