@@ -23,7 +23,7 @@ sub serialize {
     
     return pack('CCsL', 
         $self->{code}, 
-        ($self->{dst_reg} << 4)&0b11110000 | $self->{src_reg}&0b00001111,
+        ($self->{src_reg} << 4)&0b11110000 | $self->{dst_reg}&0b00001111,
         $self->{off}, 
         $self->{imm}
     );
@@ -39,8 +39,8 @@ sub deserialize {
     
     my $self = {
         code     => $code,
-        dst_reg  => ($dst_src & 0b11110000)>>4,
-        src_reg  => $dst_src & 0b00001111,
+        dst_reg  => $dst_src & 0b00001111,
+        src_reg  => ($dst_src & 0b11110000)>>4,
         off      => $off,
         imm      => $imm,
     };
