@@ -13,8 +13,8 @@ use ebpf::elf::section_type qw(SHT_PROGBITS);
 use ebpf::constants::bpf_cmd qw(BPF_MAP_CREATE BPF_PROG_LOAD);
 use ebpf::constants::bpf_prog_type qw(BPF_PROG_TYPE_KPROBE);
 use ebpf::elf::section_type qw(SHT_RELA SHT_REL SHT_SYMTAB);
+use Errno qw(EACCES EPERM);
 
-# use lib '../../lib';
 require 'ebpf/syscall/sys/syscall.ph';
 
 sub new {
@@ -129,21 +129,34 @@ sub attach_bpf_program {
 
     # バッファを適切に初期化
     my $log_buf = "\0" x 4096 x 2;  # ログバッファを適切なサイズで初期化
-    my $license = "GPL";
+    my $license = "GPL\0";
+    # bpf_attr構造体のパック
+    my $attr = pack("L L Q Q L L Q L L",
+        BPF_PROG_TYPE_KPROBE,     # prog_type
+        $insn_cnt,                # insn_cnt
+        unpack("Q", pack("P", $bpf_prog)),  # insns (ポインタ)
+        unpack("Q", pack("P", $license)),   # license (ポインタ)
+        3,                        # log_level
+        length($log_buf),         # log_size
+        unpack("Q", pack("P", $log_buf)),   # log_buf (ポインタ)
+        0,                        # kern_version
+        0                         # prog_flags
+    );
 
-    my $fd = ebpf::c_bpf_loader::load_bpf_program(
-        BPF_PROG_TYPE_KPROBE, 
-        $bpf_prog, 
-        $insn_cnt, $license, 
-        3, # log level
-        $log_buf, 
-        length($log_buf));
+    # syscallの実行
+    my $fd = syscall(SYS_bpf(), BPF_PROG_LOAD, $attr, length($attr));
+
 
     if ($fd < 0) {
+        my $errno = $!;  # get error number
+        print "Errno: $errno";
+        if ($errno == EACCES || $errno == EPERM) {
+            print "Permission denied. Are you running as root?";
+        }
+        print "Log buffer content:";
         print Dumper($log_buf);
-        die "BPF program load failed: $fd\n";
+        die "BPF program load failed: $!\n";
     }
-
     print "BPF program loaded successfully with FD: $fd\n";
 
     return $fd;
