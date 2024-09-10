@@ -110,6 +110,15 @@ sub new {
     bless $self, $class;
     return $self;
 }
+
+sub serialize_sequence {
+    my ($instructions_ref) = @_;
+    my $serialized = '';
+    for my $insn (@$instructions_ref) {
+        $serialized .= $insn->serialize();
+    }
+    return $serialized;
+}
 sub serialize {
     my ($self) = @_;
     

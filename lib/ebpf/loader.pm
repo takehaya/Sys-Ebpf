@@ -112,7 +112,7 @@ sub extract_bpf_map_attributes {
 sub load_bpf_map {
     my ($self, $map_attrs) = @_;
     my $bpfelf = $self->{bpfelf};
-    # デフォルト値を設定
+
     my $defaults = {
         map_name => "",
         map_type => 0,
@@ -128,8 +128,6 @@ sub load_bpf_map {
         btf_value_type_id => 0,
         btf_vmlinux_value_type_id => 0,
     };
-
-    # 未定義の値にデフォルト値を適用
     my $attrs = {
         %$defaults,
         %$map_attrs,
@@ -159,67 +157,87 @@ sub load_bpf_map {
     return $fd;
 }
 
-sub attach_bpf_program {
+sub find_section {
     my ($self, $section_name) = @_;
     my $bpfelf = $self->{bpfelf};
-  
-    # 適切なセクションを取得して BPF プログラムを準備
-    my $bpf_section;
-    for my $section (@{$bpfelf->{sections}}) {
-        print "section: $section->{sh_name}\n";
-        if ($section->{sh_type} == SHT_PROGBITS 
-        && $section->{sh_name} eq $section_name) {
-            $bpf_section = $section;
-            last;
-        }
+    return ebpf::elf::parser::find_section($bpfelf->{sections}, $section_name);
+}
+
+sub load_bpf_program_from_elf {
+    my ($self, $section_name) = @_;
+    my $bpfelf = $self->{bpfelf};
+    my $bpf_section = $self->find_section($section_name);
+    if (!$bpf_section) {
+        die "BPF program section '$section_name' not found in ELF file.";
     }
-    unless ($bpf_section) {
-        die "BPF program section not found in ELF file.";
+
+    my $license_section = $self->find_section("license");
+    if (!$license_section) {
+        die "'license' section not found in ELF file.";
     }
 
     # BPF プログラム属性を設定
     # cf. https://docs.kernel.org/userspace-api/ebpf/syscall.html
-    # BPF プログラムをロードするための構造体をパック
-    # 後でいい感じに整える。。。
     my $bpf_prog = substr($self->{reader}->{raw_elf_data}, $bpf_section->{sh_offset}, $bpf_section->{sh_size});
-    my $insn_cnt = length($bpf_prog) / 8;  # BPF 命令は通常8バイト
+    my $license = substr($self->{reader}->{raw_elf_data}, $license_section->{sh_offset}, $license_section->{sh_size});
 
-    print "bpf_section: ", Dumper($bpf_section);
-    print Dumper($bpf_prog);
+    my $bpf_attrs = {
+        prog_type => BPF_PROG_TYPE_KPROBE,
+        insn_cnt => length($bpf_prog) / 8,
+        insns => $bpf_prog,
+        license => $license,
+        log_level => 3,
+        log_size => 4096 * 16,
+        log_buf => "\0" x (4096 * 16),
+        kern_version => 0,
+        prog_flags => 0,
+    };
 
-    print "After relocation:\n";
-    for (my $i = 0; $i < $insn_cnt; $i++) {
-        my $insn = substr($bpf_prog, $i * 8, 8);
-        print unpack('H*', $insn) . "\n";  # バイナリ命令を16進数で出力
-    }
+    return $self->load_bpf_program($bpf_attrs);
+}
 
-    # バッファを適切に初期化
-    my $log_buf = "\0" x 4096 x 2;  # ログバッファを適切なサイズで初期化
-    my $license = "GPL\0";
+sub load_bpf_program {
+    my ($self, $bpf_attrs) = @_;
+
+    my $defaults = {
+        prog_type => 0,
+        insn_cnt => 0,
+        insns => "",
+        license => "",
+        log_level => 1,
+        log_size => 1024 * 10,
+        log_buf => "\0" x (1024 * 10),
+        kern_version => 0,
+        prog_flags => 0,
+    };
+    my $attrs = {
+        %$defaults,
+        %$bpf_attrs,
+    };
+
     # bpf_attr構造体のパック
     my $attr = pack("L L Q Q L L Q L L",
-        BPF_PROG_TYPE_KPROBE,     # prog_type
-        $insn_cnt,                # insn_cnt
-        unpack("Q", pack("P", $bpf_prog)),  # insns (ポインタ)
-        unpack("Q", pack("P", $license)),   # license (ポインタ)
-        3,                        # log_level
-        length($log_buf),         # log_size
-        unpack("Q", pack("P", $log_buf)),   # log_buf (ポインタ)
-        0,                        # kern_version
-        0                         # prog_flags
+        $attrs->{prog_type},
+        $attrs->{insn_cnt},
+        unpack("Q", pack("P", $attrs->{insns})),
+        unpack("Q", pack("P", $attrs->{license})),
+        $attrs->{log_level},
+        $attrs->{log_size},
+        unpack("Q", pack("P", $attrs->{log_buf})),
+        $attrs->{kern_version},
+        $attrs->{prog_flags}
     );
 
     # syscallの実行
     my $fd = syscall(SYS_bpf(), BPF_PROG_LOAD, $attr, length($attr));
 
     if ($fd < 0) {
-        my $errno = $!;  # get error number
-        print "Errno: $errno";
+        my $errno = $!;
+        warn "Errno: $errno\n";
         if ($errno == EACCES || $errno == EPERM) {
-            print "Permission denied. Are you running as root?";
+            warn "Permission denied. Are you running as root?\n";
         }
-        print "Log buffer content:";
-        print Dumper($log_buf);
+        warn "Log buffer content:\n", $attrs->{log_buf}, "\n";
         die "BPF program load failed: $!\n";
     }
     print "BPF program loaded successfully with FD: $fd\n";
@@ -306,7 +324,6 @@ sub apply_map_relocations {
         print "find map: $sym_name\n";
         my $map_fd = undef;
         for my $tuple (@$map_data) {
-            print "tuple: ", Dumper($tuple);
             my ($map_name, $fd) = @$tuple;
             if ($sym_name eq $map_name) {
                 $map_fd = $fd;
@@ -316,7 +333,6 @@ sub apply_map_relocations {
 
         print "Symbol: $sym_name, Map FD: $map_fd\n";
         if (defined $map_fd) {    
-            # --- ここから追加 ---
             # # 指定されたオフセット位置にある `lddw` 命令（16バイト）を取得
             my $bpf_insn = substr($self->{reader}->{raw_elf_data}, $r_offset, 16);  # 16バイトを取得
             my $bpf_insn_len = length($bpf_insn);
@@ -377,7 +393,7 @@ sub load_bpf {
 
     # todo: bpfprobが複数あるケースにも対応する
     # BPF プログラムをロード
-    my $prog_fd = $self->attach_bpf_program($section_name);
+    my $prog_fd = $self->load_bpf_program_from_elf($section_name);
 
     return (\@map_data, $prog_fd);
 }
