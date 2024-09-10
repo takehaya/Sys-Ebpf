@@ -5,8 +5,99 @@ use warnings;
 
 our $VERSION = $ebpf::VERSION;
 
+# cf. https://www.kernel.org/doc/html/v6.11-rc7/bpf/standardization/instruction-set.html
+# cf. https://github.com/iovisor/bpf-docs/blob/master/eBPF.md
+# BPF instruction classes
+use constant {
+    BPF_LD    => 0x00,
+    BPF_LDX   => 0x01,
+    BPF_ST    => 0x02,
+    BPF_STX   => 0x03,
+    BPF_ALU   => 0x04,
+    BPF_JMP   => 0x05,
+    BPF_RET   => 0x06,
+    BPF_MISC  => 0x07,
+    BPF_ALU64 => 0x07,  # Added ALU64
+};
+
+# BPF LD/LDX size modifiers
+use constant {
+    BPF_W   => 0x00,
+    BPF_H   => 0x08,
+    BPF_B   => 0x10,
+    BPF_DW  => 0x18,
+};
+
+# BPF LD/LDX mode modifiers
+use constant {
+    BPF_IMM  => 0x00,
+    BPF_ABS  => 0x20,
+    BPF_IND  => 0x40,
+    BPF_MEM  => 0x60,
+    BPF_XADD => 0xc0,
+};
+
+# BPF ALU operations
+use constant {
+    BPF_ADD  => 0x00,
+    BPF_SUB  => 0x10,
+    BPF_MUL  => 0x20,
+    BPF_DIV  => 0x30,
+    BPF_OR   => 0x40,
+    BPF_AND  => 0x50,
+    BPF_LSH  => 0x60,
+    BPF_RSH  => 0x70,
+    BPF_NEG  => 0x80,
+    BPF_MOD  => 0x90,
+    BPF_XOR  => 0xa0,
+    BPF_MOV  => 0xb0,
+    BPF_ARSH => 0xc0,
+    BPF_END  => 0xd0,
+};
+
+# BPF JMP operations
+use constant {
+    BPF_JA   => 0x00,
+    BPF_JEQ  => 0x10,
+    BPF_JGT  => 0x20,
+    BPF_JGE  => 0x30,
+    BPF_JSET => 0x40,
+    BPF_JNE  => 0x50,
+    BPF_JSGT => 0x60,
+    BPF_JSGE => 0x70,
+    BPF_CALL => 0x80,
+    BPF_EXIT => 0x90,
+    BPF_JLT  => 0xa0,
+    BPF_JLE  => 0xb0,
+    BPF_JSLT => 0xc0,
+    BPF_JSLE => 0xd0,
+};
+
+# BPF source operand
+use constant {
+    BPF_K => 0x00,
+    BPF_X => 0x08,
+};
+
 sub new {
-    my ($class, %args) = @_;
+    my $class = shift;
+    my %args;
+
+    if (@_ == 1 && ref $_[0] eq 'HASH') {
+        %args = %{$_[0]};
+    } elsif (@_ == 5) {
+        %args = (
+            code     => $_[0],
+            dst_reg  => $_[1],
+            src_reg  => $_[2],
+            off      => $_[3],
+            imm      => $_[4],
+        );
+    } elsif (@_ % 2 == 0) {
+        %args = @_;
+    } else {
+        die "Invalid arguments for constructor";
+    }
     
     my $self = {
         code     => $args{code} || 0,
@@ -19,7 +110,6 @@ sub new {
     bless $self, $class;
     return $self;
 }
-
 sub serialize {
     my ($self) = @_;
     
@@ -82,4 +172,84 @@ sub serialize_128bit_instruction {
     return $serialized_high . $serialized_low;
 }
 
+
+## BPF instruction helpers
+
+sub BPF_ALU32_REG {
+    my ($OP, $DST, $SRC) = @_;
+    return __PACKAGE__->new(
+        code    => BPF_ALU | $OP | BPF_X,
+        dst_reg => $DST,
+        src_reg => $SRC,
+    );
+}
+
+sub BPF_ALU32_IMM {
+    my ($OP, $DST, $IMM) = @_;
+    return __PACKAGE__->new(
+        code    => BPF_ALU | $OP | BPF_K,
+        dst_reg => $DST,
+        imm     => $IMM,
+    );
+}
+
+sub BPF_ALU64_REG {
+    my ($OP, $DST, $SRC) = @_;
+    return __PACKAGE__->new(
+        code    => BPF_ALU64 | $OP | BPF_X,
+        dst_reg => $DST,
+        src_reg => $SRC,
+    );
+}
+
+sub BPF_ALU64_IMM {
+    my ($OP, $DST, $IMM) = @_;
+    return __PACKAGE__->new(
+        code    => BPF_ALU64 | $OP | BPF_K,
+        dst_reg => $DST,
+        imm     => $IMM,
+    );
+}
+
+sub BPF_JMP_REG {
+    my ($OP, $DST, $SRC, $OFF) = @_;
+    return __PACKAGE__->new(
+        code    => BPF_JMP | $OP | BPF_X,
+        dst_reg => $DST,
+        src_reg => $SRC,
+        off     => $OFF,
+    );
+}
+
+sub BPF_JMP_IMM {
+    my ($OP, $DST, $IMM, $OFF) = @_;
+    return __PACKAGE__->new(
+        code    => BPF_JMP | $OP | BPF_K,
+        dst_reg => $DST,
+        imm     => $IMM,
+        off     => $OFF,
+    );
+}
+
+sub BPF_LD_IMM32 {
+    my ($DST, $IMM) = @_;
+    return __PACKAGE__->new(
+        code    => BPF_ALU | BPF_MOV | BPF_K,
+        dst_reg => $DST,
+        imm     => $IMM & 0xFFFFFFFF,
+    );
+}
+
+sub BPF_LD_IMM64 {
+    my ($DST, $IMM) = @_;
+    my $high = __PACKAGE__->new(
+        code    => BPF_LD | BPF_DW | BPF_IMM,
+        dst_reg => $DST,
+        imm     => $IMM & 0xFFFFFFFF,
+    );
+    my $low = __PACKAGE__->new(
+        imm     => $IMM >> 32,
+    );
+    return ($high, $low);
+}
 1;

@@ -224,7 +224,6 @@ sub parse_relocations {
     return \%relocations;
 }
 
-
 sub is_bpf_machine_type {
     my ($self, $e_machine) = @_;
     return $e_machine == EM_BPF;
