@@ -4,6 +4,9 @@ use strict;
 use warnings;
 use Exporter 'import';
 
+our $VERSION = $ebpf::VERSION;
+
+
 my @constants = (
     'SHF_WRITE',           1 << 0,
     'SHF_ALLOC',           1 << 1,

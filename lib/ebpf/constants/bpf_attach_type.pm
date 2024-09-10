@@ -4,6 +4,8 @@ use strict;
 use warnings;
 use Exporter 'import';
 
+our $VERSION = $ebpf::VERSION;
+
 # 定数を配列で定義
 my @constants = (
     'BPF_CGROUP_INET_INGRESS',       0,

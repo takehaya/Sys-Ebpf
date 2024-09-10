@@ -3,6 +3,8 @@ package ebpf::reader;
 use strict;
 use warnings;
 
+our $VERSION = $ebpf::VERSION;
+
 use ebpf::elf::parser;
 
 # cf. https://www.ietf.org/archive/id/draft-thaler-bpf-elf-00.html

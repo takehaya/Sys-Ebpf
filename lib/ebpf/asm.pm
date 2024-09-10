@@ -3,6 +3,8 @@ package ebpf::asm;
 use strict;
 use warnings;
 
+our $VERSION = $ebpf::VERSION;
+
 sub new {
     my ($class, %args) = @_;
     

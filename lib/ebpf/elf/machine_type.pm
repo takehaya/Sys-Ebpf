@@ -4,6 +4,8 @@ use strict;
 use warnings;
 use Exporter 'import';
 
+our $VERSION = $ebpf::VERSION;
+
 my @constants = (
     'EM_NONE',         0,
     'EM_M32',          1,

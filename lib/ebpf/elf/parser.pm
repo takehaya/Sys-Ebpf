@@ -3,6 +3,8 @@ package ebpf::elf::parser;
 use strict;
 use warnings;
 
+our $VERSION = $ebpf::VERSION;
+
 use ebpf::elf::section_type qw(SHT_RELA SHT_REL SHT_SYMTAB);
 use ebpf::elf::machine_type qw(EM_BPF);
 

@@ -4,6 +4,8 @@ use strict;
 use warnings;
 use Exporter 'import';
 
+our $VERSION = $ebpf::VERSION;
+
 my @constants = (
     'BPF_PROG_TYPE_UNSPEC',              0,
     'BPF_PROG_TYPE_SOCKET_FILTER',       1,

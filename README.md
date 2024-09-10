@@ -7,6 +7,9 @@ perl Makefile.PL
 make
 make test
 make install
+
+# dest upload
+make dest
 ```
 
 ### running unittest
@@ -14,14 +17,3 @@ make install
 prove -v -l t/*.t
 ```
 
-### develop for iteration
-```shell
-make clean
-perl Makefile.PL
-make
-# move to `c_bpf_loader.o`
-mv c_bpf_loader.o lib/ebpf
-# recomplie
-make
-make install
-```

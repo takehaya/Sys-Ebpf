@@ -4,6 +4,8 @@ use strict;
 use warnings;
 use Exporter 'import';
 
+our $VERSION = $ebpf::VERSION;
+
 # Symbol Bindings (upper 4 bits of st_info)
 my @constants = (
     'STB_LOCAL',   0,

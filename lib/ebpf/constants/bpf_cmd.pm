@@ -4,6 +4,8 @@ use strict;
 use warnings;
 use Exporter 'import';
 
+our $VERSION = $ebpf::VERSION;
+
 my @constants = (
     'BPF_MAP_CREATE',                0,
     'BPF_MAP_LOOKUP_ELEM',           1,

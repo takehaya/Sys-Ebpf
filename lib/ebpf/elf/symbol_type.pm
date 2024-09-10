@@ -4,6 +4,8 @@ use strict;
 use warnings;
 use Exporter 'import';
 
+our $VERSION = $ebpf::VERSION;
+
 # Symbol Types (lower 4 bits of st_info)
 my @constants = (
     'STT_NOTYPE',  0,

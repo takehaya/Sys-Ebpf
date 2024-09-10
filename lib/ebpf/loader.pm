@@ -5,12 +5,12 @@ use warnings;
 
 use ebpf::asm;
 use ebpf::reader;
-use ebpf::c_bpf_loader;
+our $VERSION = $ebpf::VERSION;
 
 use Data::Dumper;
 
 use ebpf::elf::section_type qw(SHT_PROGBITS);
-use ebpf::constants::bpf_cmd qw(BPF_MAP_CREATE BPF_PROG_LOAD);
+use ebpf::constants::bpf_cmd qw(BPF_MAP_CREATE BPF_PROG_LOAD BPF_OBJ_PIN);
 use ebpf::constants::bpf_prog_type qw(BPF_PROG_TYPE_KPROBE);
 use ebpf::elf::section_type qw(SHT_RELA SHT_REL SHT_SYMTAB);
 use ebpf::elf::symbol_type qw(STT_OBJECT);
@@ -227,18 +227,36 @@ sub attach_bpf_program {
     return $fd;
 }
 
+# BPF_OBJ_PIN の実装
+# struct { /* anonymous struct used by BPF_OBJ_* commands */
+#     __aligned_u64	pathname;
+#     __u32		bpf_fd;
+#     __u32		file_flags;
+# };
 sub pin_bpf_map {
     my ($map_fd, $pin_path) = @_;
 
-    # bpf_obj_pin syscallを呼び出してマップを指定のパスに保存する
-    my $res = ebpf::c_bpf_loader::pin_bpf_map($map_fd, $pin_path);
+    # ファイルパスの NULL 終端文字列を作成
+    my $path_buf = pack("Z*", $pin_path);
+
+    # bpf_attr 構造体をパック
+    my $attr = pack("Q L L",
+        unpack("Q", pack("P", $path_buf)),  # pathname (ポインタ)
+        $map_fd,                            # bpf_fd
+        0                                   # file_flags (未使用)
+    );
+
+    # syscall を使用して BPF_OBJ_PIN を実行
+    my $res = syscall(SYS_bpf(), BPF_OBJ_PIN, $attr, length($attr));
 
     if ($res < 0) {
-        die "Failed to pin BPF map: $res\n";
+        my $errno = $!;
+        die "Failed to pin BPF map: $errno\n";
     }
 
-    print "BPF map pinned successfully at $pin_path\n";
+    return $res;
 }
+
 
 sub unpin_bpf_map {
     my ($pin_path) = @_;
