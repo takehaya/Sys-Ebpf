@@ -257,15 +257,17 @@ sub pin_bpf_map {
     return $res;
 }
 
-
+# BPF_OBJ_PIN のunpinの実装
+# return:
+#   0: success
+#   -1: failed
 sub unpin_bpf_map {
     my ($pin_path) = @_;
 
-    # ファイルを削除する
     if (unlink($pin_path)) {
-        print "BPF map unpinned successfully from $pin_path\n";
+        return 0;
     } else {
-        die "BPF map unpinning failed: $!\n";
+        return -1;
     }
 }
 
