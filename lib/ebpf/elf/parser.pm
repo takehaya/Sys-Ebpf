@@ -85,7 +85,7 @@ sub parse_elf {
 
     # section tableのセクション名を取得するために文字列テーブルセクションを取得
     my $strtab_section_offset = $elf->{e_shoff} + $elf->{e_shstrndx} * $elf->{e_shentsize};
-    my $strtab_offset = unpack('Q', substr($data, $strtab_section_offset + 24, 8));  # sh_offset フィールドの位置から取得
+    my $strtab_offset = unpack('Q', substr($data, $strtab_section_offset + 24, 8));
 
     # セクションヘッダとシンボルテーブルをパースするための追加処理
     $elf->{sections} = parse_sections($data, $elf->{e_shoff}, $elf->{e_shnum}, $elf->{e_shentsize}, $strtab_offset);
@@ -117,6 +117,7 @@ sub parse_sections {
         my $sh_name = unpack('Z*', substr($data, $name_offset));
 
         push @sections, {
+            sh_index => $i,
             sh_name => $sh_name,
             sh_type => $sh_type,
             sh_flags => $sh_flags,
@@ -144,31 +145,34 @@ sub parse_symbols {
     my ($data, $sections, $strtab_idx) = @_;
     my @symbols;
 
+    # get string table section
     my $strtab_section = $sections->[$strtab_idx];
     my $strtab_offset = $strtab_section->{sh_offset};
     my $strtab_size = $strtab_section->{sh_size};
+    
+    # get symbol table section
+    my $symtab_section = find_section($sections, '.symtab');
+    my $num_symbols = $symtab_section->{sh_size} / $symtab_section->{sh_entsize};
 
-    for my $section (@$sections) {
-        next unless $section->{sh_type} == SHT_SYMTAB; # SYMTAB
+    for my $i (0 .. $num_symbols - 1) {
+        my $offset = $symtab_section->{sh_offset} + $i * $symtab_section->{sh_entsize};
+        my ($st_name, $st_info, $st_other, $st_shndx, $st_value, $st_size) =
+            unpack('L C C S Q Q', substr($data, $offset, $symtab_section->{sh_entsize}));
 
-        my $num_symbols = $section->{sh_size} / $section->{sh_entsize};
-        for my $i (0 .. $num_symbols - 1) {
-            my $offset = $section->{sh_offset} + $i * $section->{sh_entsize};
-            my ($st_name, $st_info, $st_other, $st_shndx, $st_value, $st_size) =
-                unpack('L C C S Q Q', substr($data, $offset, $section->{sh_entsize}));
+        my $name_offset = $strtab_offset + $st_name;
+        my $name = unpack('Z*', substr($data, $name_offset, $strtab_size - ($name_offset - $strtab_offset)));
+        my $symbol = {
+            st_name  => $name,
+            st_info  => $st_info,
+            st_other => $st_other,
+            st_shndx => $st_shndx,
+            st_value => $st_value,
+            st_size  => $st_size,
+            st_type  => $st_info & 0xf,
+            st_bind  => $st_info >> 4,
+        };
 
-            my $name_offset = $strtab_offset + $st_name;
-            my $name = unpack('Z*', substr($data, $name_offset, $strtab_size - $name_offset));
-
-            push @symbols, {
-                st_name => $name,
-                st_info => $st_info,
-                st_other => $st_other,
-                st_shndx => $st_shndx,
-                st_value => $st_value,
-                st_size => $st_size,
-            };
-        }
+        push @symbols, $symbol;
     }
 
     return \@symbols;
@@ -223,4 +227,10 @@ sub is_bpf_machine_type {
     my ($self, $e_machine) = @_;
     return $e_machine == EM_BPF;
 }
+
+sub find_section {
+    my ($sections, $name) = @_;
+    return (grep { $_->{sh_name} eq $name } @$sections)[0];
+}
+
 1;

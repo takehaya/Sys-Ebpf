@@ -9,6 +9,12 @@ struct bpf_map_def SEC("maps") kprobe_map = {
 	.value_size = sizeof(__u64),
 	.max_entries = 1,
 };
+struct bpf_map_def SEC("maps") kprobe_map_2 = {
+	.type = BPF_MAP_TYPE_ARRAY,
+	.key_size = sizeof(__u32),
+	.value_size = sizeof(__u64),
+	.max_entries = 1,
+};
 // struct {
 // 	 __uint(type, BPF_MAP_TYPE_ARRAY);
 // 	 __type(key, __u32);

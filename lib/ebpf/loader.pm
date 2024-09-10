@@ -13,6 +13,7 @@ use ebpf::elf::section_type qw(SHT_PROGBITS);
 use ebpf::constants::bpf_cmd qw(BPF_MAP_CREATE BPF_PROG_LOAD);
 use ebpf::constants::bpf_prog_type qw(BPF_PROG_TYPE_KPROBE);
 use ebpf::elf::section_type qw(SHT_RELA SHT_REL SHT_SYMTAB);
+use ebpf::elf::symbol_type qw(STT_OBJECT);
 use Errno qw(EACCES EPERM);
 
 require 'ebpf/syscall/sys/syscall.ph';
@@ -57,38 +58,103 @@ sub find_symbol_table_from_name {
     return undef;
 }
 
-sub load_bpf_map {
-    my ($self, $map_name, $map_type, $key_size, $value_size, $max_entries, $map_flags) = @_;
+sub extract_bpf_map_attributes {
+    my ($self, $section_name) = @_;
     my $bpfelf = $self->{bpfelf};
 
-    # 適切なセクションを取得して BPF マップを準備
-    my $bpf_section;
+    # find map section
+    my $map_section;
     for my $section (@{$bpfelf->{sections}}) {
-        if ($section->{sh_type} == SHT_PROGBITS 
-        && $section->{sh_name} eq "maps") {
-            $bpf_section = $section;
+        if ($section->{sh_type} == SHT_PROGBITS && $section->{sh_name} eq $section_name) {
+            $map_section = $section;
             last;
         }
     }
-    unless ($bpf_section) {
-        die "BPF map section not found in ELF file.";
+
+    die "BPF map section '$section_name' not found in ELF file." unless $map_section;
+
+    my $map_data = substr($self->{reader}->{raw_elf_data}, $map_section->{sh_offset}, $map_section->{sh_size});
+    
+    # parse map attributes
+    my @maps;
+    my $offset = 0;
+    while ($offset < length($map_data)) {
+        # map size is 20 bytes
+        my ($map_type, $key_size, $value_size, $max_entries, $map_flags) = unpack("L L L L L", substr($map_data, $offset, 20));
+        push @maps, {
+            map_type => $map_type,
+            key_size => $key_size,
+            value_size => $value_size,
+            max_entries => $max_entries,
+            map_flags => $map_flags,
+        };
+        $offset += 20;
     }
 
-    # BPF マップ属性を設定
-    # cf. https://docs.kernel.org/userspace-api/ebpf/syscall.html
-    # BPF マップをロードするための構造体をパック
-    # 後でいい感じに整える。。。
-    my $bpf_map = substr($self->{reader}->{raw_elf_data}, $bpf_section->{sh_offset}, $bpf_section->{sh_size});
+    # get map names
+    ## map sectionのidxと一致するst_shndxを持つシンボルを取得
+    my %map_names;
+    for my $symbol (@{$bpfelf->{symbols}}) {
+        if (($symbol->{st_info} & 0xf) != STT_OBJECT) {
+            next;
+        }
+        if ($symbol->{st_shndx} == $map_section->{sh_index}) {
+            my $map_index = $symbol->{st_value} / 20;
+            $map_names{$map_index} = $symbol->{st_name};
+        }
+    }
+    for my $i (0 .. $#maps) {
+        $maps[$i]{map_name} = $map_names{$i} if exists $map_names{$i};
+    }
+    return \@maps;
+}
 
-    # BPF マップを作成
-    print "map_type: $map_type". "key_size: $key_size" ."\n";
-    my $fd = ebpf::c_bpf_loader::load_bpf_map($map_type, $key_size, $value_size, $max_entries, $map_flags);
+sub load_bpf_map {
+    my ($self, $map_attrs) = @_;
+    my $bpfelf = $self->{bpfelf};
+    # デフォルト値を設定
+    my $defaults = {
+        map_name => "",
+        map_type => 0,
+        key_size => 0,
+        value_size => 0,
+        max_entries => 0,
+        map_flags => 0,
+        inner_map_fd => -1,
+        numa_node => 0,
+        map_ifindex => 0,
+        btf_fd => 0,
+        btf_key_type_id => 0,
+        btf_value_type_id => 0,
+        btf_vmlinux_value_type_id => 0,
+    };
 
+    # 未定義の値にデフォルト値を適用
+    my $attrs = {
+        %$defaults,
+        %$map_attrs,
+    };
+    my $attr = pack(
+        "L L L L L L L Z16 L L L L L",
+        $attrs->{map_type},
+        $attrs->{key_size},
+        $attrs->{value_size},
+        $attrs->{max_entries},
+        $attrs->{map_flags},
+        $attrs->{inner_map_fd},
+        $attrs->{numa_node},
+        $attrs->{map_name},
+        $attrs->{map_ifindex},
+        $attrs->{btf_fd},
+        $attrs->{btf_key_type_id},
+        $attrs->{btf_value_type_id},
+        $attrs->{btf_vmlinux_value_type_id}
+    );
+
+    my $fd = syscall(SYS_bpf(), BPF_MAP_CREATE, $attr, length($attr));
     if ($fd < 0) {
         die "BPF map load failed: $fd\n";
     }
-
-    print "BPF map loaded successfully with FD: $fd\n";
 
     return $fd;
 }
@@ -146,7 +212,6 @@ sub attach_bpf_program {
     # syscallの実行
     my $fd = syscall(SYS_bpf(), BPF_PROG_LOAD, $attr, length($attr));
 
-
     if ($fd < 0) {
         my $errno = $!;  # get error number
         print "Errno: $errno";
@@ -199,7 +264,6 @@ sub apply_map_relocations {
     my ($self, $prob_section, $reloc_sections, $elf, $map_data) = @_;
     my $symbols_section = $elf->{symbols};
     for my $reloc_section (@$reloc_sections) {
-        print "reloc_section: ", Dumper($reloc_section);
         my $r_info = $reloc_section->{r_info};
         my $r_offset = $reloc_section->{r_offset} + $prob_section->{sh_offset}; 
 
@@ -264,28 +328,19 @@ sub apply_map_relocations {
 # BPF プログラムとマップをロード
 # args:
 #   section_name: BPF プログラムのセクション名
-#   map_attr_ref: マップ名と属性の組になったhashのリファレンス
 # return:
 #   map_data: マップ名とFDの組になったhashのリファレンス
 #   prog_fd: プログラムFD
 sub load_bpf {
-    my ($self, $section_name, $map_attr_ref) = @_;
+    my ($self, $section_name) = @_;
     my $bpfelf = $self->{bpfelf};
-    my %map_attr = %$map_attr_ref;
-
+    my $maps = $self->extract_bpf_map_attributes('maps');
+    
     my @map_data;
     # map_attr_refの各キー（マップ名）に対して処理を実行
-    for my $map_name (keys %map_attr) {
-        my $attr = $map_attr{$map_name};
-
-        my $map_fd = $self->load_bpf_map(
-            $map_name,
-            $attr->{map_type} || 0,
-            $attr->{key_size} || 0,
-            $attr->{value_size} || 0,
-            $attr->{max_entries} || 0,
-            $attr->{map_flags} || 0,
-        );
+    for my $map (@$maps) {
+        my $map_name = $map->{map_name};
+        my $map_fd = $self->load_bpf_map($map);
         if ($map_fd < 0) {
             die "Failed to load BPF map: $map_name (FD: $map_fd)\n";
         }

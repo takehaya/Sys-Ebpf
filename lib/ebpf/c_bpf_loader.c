@@ -18,33 +18,8 @@
 #include <errno.h>
 #include <stdio.h>
 
-int load_bpf_program(
-    int prog_type, 
-    const void *insns, 
-    size_t insn_cnt, 
-    const char *license, 
-    const int log_level,
-    char *log_buf, 
-    size_t log_buf_sz) {
-    union bpf_attr attr;
-    memset(&attr, 0, sizeof(attr));
-
-    attr.prog_type = prog_type;
-    attr.insns = (unsigned long)insns;
-    attr.insn_cnt = insn_cnt;
-    attr.license = (unsigned long)license;
-    attr.log_buf = (unsigned long)log_buf;
-    attr.log_size = log_buf_sz;
-    attr.log_level = log_level;
-
-    int fd = syscall(SYS_bpf, BPF_PROG_LOAD, &attr, sizeof(attr));
-    if (fd < 0) {
-        perror("BPF program load failed");
-    }
-    return fd;
-}
-
-int load_bpf_map(int map_type, int key_size, int value_size, int max_entries, int map_flags) {
+int load_bpf_map(int map_type, int key_size, int value_size, int max_entries, int map_flags)
+{
     union bpf_attr attr;
     memset(&attr, 0, sizeof(attr));
 
@@ -55,13 +30,15 @@ int load_bpf_map(int map_type, int key_size, int value_size, int max_entries, in
     attr.map_flags = map_flags;
 
     int fd = syscall(SYS_bpf, BPF_MAP_CREATE, &attr, sizeof(attr));
-    if (fd < 0) {
+    if (fd < 0)
+    {
         perror("BPF map creation failed");
     }
     return fd;
 }
 
-int pin_bpf_map(int map_fd, const char *pin_path) {
+int pin_bpf_map(int map_fd, const char *pin_path)
+{
     union bpf_attr attr;
     memset(&attr, 0, sizeof(attr));
 
@@ -69,7 +46,8 @@ int pin_bpf_map(int map_fd, const char *pin_path) {
     attr.pathname = (unsigned long)pin_path;
 
     int res = syscall(SYS_bpf, BPF_OBJ_PIN, &attr, sizeof(attr));
-    if (res < 0) {
+    if (res < 0)
+    {
         perror("BPF map pinning failed");
     }
     return res;
@@ -77,29 +55,30 @@ int pin_bpf_map(int map_fd, const char *pin_path) {
 
 #line 79 "lib/ebpf/c_bpf_loader.c"
 #ifndef PERL_UNUSED_VAR
-#  define PERL_UNUSED_VAR(var) if (0) var = var
+#define PERL_UNUSED_VAR(var) \
+    if (0)                   \
+    var = var
 #endif
 
 #ifndef dVAR
-#  define dVAR		dNOOP
+#define dVAR dNOOP
 #endif
-
 
 /* This stuff is not part of the API! You have been warned. */
 #ifndef PERL_VERSION_DECIMAL
-#  define PERL_VERSION_DECIMAL(r,v,s) (r*1000000 + v*1000 + s)
+#define PERL_VERSION_DECIMAL(r, v, s) (r * 1000000 + v * 1000 + s)
 #endif
 #ifndef PERL_DECIMAL_VERSION
-#  define PERL_DECIMAL_VERSION \
-	  PERL_VERSION_DECIMAL(PERL_REVISION,PERL_VERSION,PERL_SUBVERSION)
+#define PERL_DECIMAL_VERSION \
+    PERL_VERSION_DECIMAL(PERL_REVISION, PERL_VERSION, PERL_SUBVERSION)
 #endif
 #ifndef PERL_VERSION_GE
-#  define PERL_VERSION_GE(r,v,s) \
-	  (PERL_DECIMAL_VERSION >= PERL_VERSION_DECIMAL(r,v,s))
+#define PERL_VERSION_GE(r, v, s) \
+    (PERL_DECIMAL_VERSION >= PERL_VERSION_DECIMAL(r, v, s))
 #endif
 #ifndef PERL_VERSION_LE
-#  define PERL_VERSION_LE(r,v,s) \
-	  (PERL_DECIMAL_VERSION <= PERL_VERSION_DECIMAL(r,v,s))
+#define PERL_VERSION_LE(r, v, s) \
+    (PERL_DECIMAL_VERSION <= PERL_VERSION_DECIMAL(r, v, s))
 #endif
 
 /* XS_INTERNAL is the explicit static-linkage variant of the default
@@ -112,37 +91,35 @@ int pin_bpf_map(int map_fd, const char *pin_path) {
  * See XSUB.h in core!
  */
 
-
 /* TODO: This might be compatible further back than 5.10.0. */
 #if PERL_VERSION_GE(5, 10, 0) && PERL_VERSION_LE(5, 15, 1)
-#  undef XS_EXTERNAL
-#  undef XS_INTERNAL
-#  if defined(__CYGWIN__) && defined(USE_DYNAMIC_LOADING)
-#    define XS_EXTERNAL(name) __declspec(dllexport) XSPROTO(name)
-#    define XS_INTERNAL(name) STATIC XSPROTO(name)
-#  endif
-#  if defined(__SYMBIAN32__)
-#    define XS_EXTERNAL(name) EXPORT_C XSPROTO(name)
-#    define XS_INTERNAL(name) EXPORT_C STATIC XSPROTO(name)
-#  endif
-#  ifndef XS_EXTERNAL
-#    if defined(HASATTRIBUTE_UNUSED) && !defined(__cplusplus)
-#      define XS_EXTERNAL(name) void name(pTHX_ CV* cv __attribute__unused__)
-#      define XS_INTERNAL(name) STATIC void name(pTHX_ CV* cv __attribute__unused__)
-#    else
-#      ifdef __cplusplus
-#        define XS_EXTERNAL(name) extern "C" XSPROTO(name)
-#        define XS_INTERNAL(name) static XSPROTO(name)
-#      else
-#        define XS_EXTERNAL(name) XSPROTO(name)
-#        define XS_INTERNAL(name) STATIC XSPROTO(name)
-#      endif
-#    endif
-#  endif
+#undef XS_EXTERNAL
+#undef XS_INTERNAL
+#if defined(__CYGWIN__) && defined(USE_DYNAMIC_LOADING)
+#define XS_EXTERNAL(name) __declspec(dllexport) XSPROTO(name)
+#define XS_INTERNAL(name) STATIC XSPROTO(name)
+#endif
+#if defined(__SYMBIAN32__)
+#define XS_EXTERNAL(name) EXPORT_C XSPROTO(name)
+#define XS_INTERNAL(name) EXPORT_C STATIC XSPROTO(name)
+#endif
+#ifndef XS_EXTERNAL
+#if defined(HASATTRIBUTE_UNUSED) && !defined(__cplusplus)
+#define XS_EXTERNAL(name) void name(pTHX_ CV *cv __attribute__unused__)
+#define XS_INTERNAL(name) STATIC void name(pTHX_ CV *cv __attribute__unused__)
+#else
+#ifdef __cplusplus
+#define XS_EXTERNAL(name) extern "C" XSPROTO(name)
+#define XS_INTERNAL(name) static XSPROTO(name)
+#else
+#define XS_EXTERNAL(name) XSPROTO(name)
+#define XS_INTERNAL(name) STATIC XSPROTO(name)
+#endif
+#endif
+#endif
 #endif
 
 /* perl >= 5.10.0 && perl <= 5.15.1 */
-
 
 /* The XS_EXTERNAL macro is used for functions that must not be static
  * like the boot XSUB of a module. If perl didn't have an XS_EXTERNAL
@@ -150,10 +127,10 @@ int pin_bpf_map(int map_fd, const char *pin_path) {
  * Dito for XS_INTERNAL.
  */
 #ifndef XS_EXTERNAL
-#  define XS_EXTERNAL(name) XS(name)
+#define XS_EXTERNAL(name) XS(name)
 #endif
 #ifndef XS_INTERNAL
-#  define XS_INTERNAL(name) XS(name)
+#define XS_INTERNAL(name) XS(name)
 #endif
 
 /* Now, finally, after all this mess, we want an ExtUtils::ParseXS
@@ -164,14 +141,16 @@ int pin_bpf_map(int map_fd, const char *pin_path) {
 
 #undef XS_EUPXS
 #if defined(PERL_EUPXS_ALWAYS_EXPORT)
-#  define XS_EUPXS(name) XS_EXTERNAL(name)
+#define XS_EUPXS(name) XS_EXTERNAL(name)
 #else
-   /* default to internal */
-#  define XS_EUPXS(name) XS_INTERNAL(name)
+/* default to internal */
+#define XS_EUPXS(name) XS_INTERNAL(name)
 #endif
 
 #ifndef PERL_ARGS_ASSERT_CROAK_XS_USAGE
-#define PERL_ARGS_ASSERT_CROAK_XS_USAGE assert(cv); assert(params)
+#define PERL_ARGS_ASSERT_CROAK_XS_USAGE \
+    assert(cv);                         \
+    assert(params)
 
 /* prototype to pass -Wmissing-prototypes */
 STATIC void
@@ -184,23 +163,26 @@ S_croak_xs_usage(const CV *const cv, const char *const params)
 
     PERL_ARGS_ASSERT_CROAK_XS_USAGE;
 
-    if (gv) {
+    if (gv)
+    {
         const char *const gvname = GvNAME(gv);
         const HV *const stash = GvSTASH(gv);
         const char *const hvname = stash ? HvNAME(stash) : NULL;
 
         if (hvname)
-	    Perl_croak_nocontext("Usage: %s::%s(%s)", hvname, gvname, params);
+            Perl_croak_nocontext("Usage: %s::%s(%s)", hvname, gvname, params);
         else
-	    Perl_croak_nocontext("Usage: %s(%s)", gvname, params);
-    } else {
+            Perl_croak_nocontext("Usage: %s(%s)", gvname, params);
+    }
+    else
+    {
         /* Pants. I don't think that it should be possible to get here. */
-	Perl_croak_nocontext("Usage: CODE(0x%" UVxf ")(%s)", PTR2UV(cv), params);
+        Perl_croak_nocontext("Usage: CODE(0x%" UVxf ")(%s)", PTR2UV(cv), params);
     }
 }
-#undef  PERL_ARGS_ASSERT_CROAK_XS_USAGE
+#undef PERL_ARGS_ASSERT_CROAK_XS_USAGE
 
-#define croak_xs_usage        S_croak_xs_usage
+#define croak_xs_usage S_croak_xs_usage
 
 #endif
 
@@ -210,13 +192,13 @@ S_croak_xs_usage(const CV *const cv, const char *const params)
 #ifdef newXS_flags
 #define newXSproto_portable(name, c_impl, file, proto) newXS_flags(name, c_impl, file, proto, 0)
 #else
-#define newXSproto_portable(name, c_impl, file, proto) (PL_Sv=(SV*)newXS(name, c_impl, file), sv_setpv(PL_Sv, proto), (CV*)PL_Sv)
+#define newXSproto_portable(name, c_impl, file, proto) (PL_Sv = (SV *)newXS(name, c_impl, file), sv_setpv(PL_Sv, proto), (CV *)PL_Sv)
 #endif /* !defined(newXS_flags) */
 
 #if PERL_VERSION_LE(5, 21, 5)
-#  define newXS_deffile(a,b) Perl_newXS(aTHX_ a,b,file)
+#define newXS_deffile(a, b) Perl_newXS(aTHX_ a, b, file)
 #else
-#  define newXS_deffile(a,b) Perl_newXS_deffile(aTHX_ a,b)
+#define newXS_deffile(a, b) Perl_newXS_deffile(aTHX_ a, b)
 #endif
 
 #line 223 "lib/ebpf/c_bpf_loader.c"
@@ -224,88 +206,78 @@ S_croak_xs_usage(const CV *const cv, const char *const params)
 XS_EUPXS(XS_ebpf__c_bpf_loader_load_bpf_program); /* prototype to pass -Wmissing-prototypes */
 XS_EUPXS(XS_ebpf__c_bpf_loader_load_bpf_program)
 {
-    dVAR; dXSARGS;
+    dVAR;
+    dXSARGS;
     if (items != 7)
-       croak_xs_usage(cv,  "prog_type, insns, insn_cnt, license, log_level, log_buf, log_buf_sz");
+        croak_xs_usage(cv, "prog_type, insns, insn_cnt, license, log_level, log_buf, log_buf_sz");
     {
-	int	prog_type = (int)SvIV(ST(0))
-;
-	SV *	insns = ST(1)
-;
-	size_t	insn_cnt = (size_t)SvUV(ST(2))
-;
-	const char *	license = (const char *)SvPV_nolen(ST(3))
-;
-	int	log_level = (int)SvIV(ST(4))
-;
-	SV *	log_buf = ST(5)
-;
-	size_t	log_buf_sz = (size_t)SvUV(ST(6))
-;
-	int	RETVAL;
-	dXSTARG;
+        int prog_type = (int)SvIV(ST(0));
+        SV *insns = ST(1);
+        size_t insn_cnt = (size_t)SvUV(ST(2));
+        const char *license = (const char *)SvPV_nolen(ST(3));
+        int log_level = (int)SvIV(ST(4));
+        SV *log_buf = ST(5);
+        size_t log_buf_sz = (size_t)SvUV(ST(6));
+        int RETVAL;
+        dXSTARG;
 #line 81 "lib/ebpf/c_bpf_loader.xs"
-{
-    char *insns_ptr = SvPV_nolen(insns);
-    char *log_buf_ptr = SvPV_nolen(log_buf);
-    RETVAL = load_bpf_program(prog_type, insns_ptr, insn_cnt, license, log_level, log_buf_ptr, log_buf_sz);
-}
+        {
+            char *insns_ptr = SvPV_nolen(insns);
+            char *log_buf_ptr = SvPV_nolen(log_buf);
+            RETVAL = load_bpf_program(prog_type, insns_ptr, insn_cnt, license, log_level, log_buf_ptr, log_buf_sz);
+        }
 #line 254 "lib/ebpf/c_bpf_loader.c"
-	XSprePUSH; PUSHi((IV)RETVAL);
+        XSprePUSH;
+        PUSHi((IV)RETVAL);
     }
     XSRETURN(1);
 }
-
 
 XS_EUPXS(XS_ebpf__c_bpf_loader_load_bpf_map); /* prototype to pass -Wmissing-prototypes */
 XS_EUPXS(XS_ebpf__c_bpf_loader_load_bpf_map)
 {
-    dVAR; dXSARGS;
+    dVAR;
+    dXSARGS;
     if (items != 5)
-       croak_xs_usage(cv,  "map_type, key_size, value_size, max_entries, map_flags");
+        croak_xs_usage(cv, "map_type, key_size, value_size, max_entries, map_flags");
     {
-	int	map_type = (int)SvIV(ST(0))
-;
-	int	key_size = (int)SvIV(ST(1))
-;
-	int	value_size = (int)SvIV(ST(2))
-;
-	int	max_entries = (int)SvIV(ST(3))
-;
-	int	map_flags = (int)SvIV(ST(4))
-;
-	int	RETVAL;
-	dXSTARG;
+        int map_type = (int)SvIV(ST(0));
+        int key_size = (int)SvIV(ST(1));
+        int value_size = (int)SvIV(ST(2));
+        int max_entries = (int)SvIV(ST(3));
+        int map_flags = (int)SvIV(ST(4));
+        int RETVAL;
+        dXSTARG;
 #line 97 "lib/ebpf/c_bpf_loader.xs"
-{
-    RETVAL = load_bpf_map(map_type, key_size, value_size, max_entries, map_flags);
-}
+        {
+            RETVAL = load_bpf_map(map_type, key_size, value_size, max_entries, map_flags);
+        }
 #line 284 "lib/ebpf/c_bpf_loader.c"
-	XSprePUSH; PUSHi((IV)RETVAL);
+        XSprePUSH;
+        PUSHi((IV)RETVAL);
     }
     XSRETURN(1);
 }
 
-
 XS_EUPXS(XS_ebpf__c_bpf_loader_pin_bpf_map); /* prototype to pass -Wmissing-prototypes */
 XS_EUPXS(XS_ebpf__c_bpf_loader_pin_bpf_map)
 {
-    dVAR; dXSARGS;
+    dVAR;
+    dXSARGS;
     if (items != 2)
-       croak_xs_usage(cv,  "map_fd, pin_path");
+        croak_xs_usage(cv, "map_fd, pin_path");
     {
-	int	map_fd = (int)SvIV(ST(0))
-;
-	const char *	pin_path = (const char *)SvPV_nolen(ST(1))
-;
-	int	RETVAL;
-	dXSTARG;
+        int map_fd = (int)SvIV(ST(0));
+        const char *pin_path = (const char *)SvPV_nolen(ST(1));
+        int RETVAL;
+        dXSTARG;
 #line 108 "lib/ebpf/c_bpf_loader.xs"
-{
-    RETVAL = pin_bpf_map(map_fd, pin_path);
-}
+        {
+            RETVAL = pin_bpf_map(map_fd, pin_path);
+        }
 #line 308 "lib/ebpf/c_bpf_loader.c"
-	XSprePUSH; PUSHi((IV)RETVAL);
+        XSprePUSH;
+        PUSHi((IV)RETVAL);
     }
     XSRETURN(1);
 }
@@ -313,42 +285,43 @@ XS_EUPXS(XS_ebpf__c_bpf_loader_pin_bpf_map)
 #ifdef __cplusplus
 extern "C"
 #endif
-XS_EXTERNAL(boot_ebpf__c_bpf_loader); /* prototype to pass -Wmissing-prototypes */
+    XS_EXTERNAL(boot_ebpf__c_bpf_loader); /* prototype to pass -Wmissing-prototypes */
 XS_EXTERNAL(boot_ebpf__c_bpf_loader)
 {
 #if PERL_VERSION_LE(5, 21, 5)
-    dVAR; dXSARGS;
+    dVAR;
+    dXSARGS;
 #else
-    dVAR; dXSBOOTARGSXSAPIVERCHK;
+    dVAR;
+    dXSBOOTARGSXSAPIVERCHK;
 #endif
 #if PERL_VERSION_LE(5, 8, 999) /* PERL_VERSION_LT is 5.33+ */
-    char* file = __FILE__;
+    char *file = __FILE__;
 #else
-    const char* file = __FILE__;
+    const char *file = __FILE__;
 #endif
 
     PERL_UNUSED_VAR(file);
 
-    PERL_UNUSED_VAR(cv); /* -W */
+    PERL_UNUSED_VAR(cv);    /* -W */
     PERL_UNUSED_VAR(items); /* -W */
 #if PERL_VERSION_LE(5, 21, 5)
     XS_VERSION_BOOTCHECK;
-#  ifdef XS_APIVERSION_BOOTCHECK
+#ifdef XS_APIVERSION_BOOTCHECK
     XS_APIVERSION_BOOTCHECK;
-#  endif
+#endif
 #endif
 
-        newXS_deffile("ebpf::c_bpf_loader::load_bpf_program", XS_ebpf__c_bpf_loader_load_bpf_program);
-        newXS_deffile("ebpf::c_bpf_loader::load_bpf_map", XS_ebpf__c_bpf_loader_load_bpf_map);
-        newXS_deffile("ebpf::c_bpf_loader::pin_bpf_map", XS_ebpf__c_bpf_loader_pin_bpf_map);
+    newXS_deffile("ebpf::c_bpf_loader::load_bpf_program", XS_ebpf__c_bpf_loader_load_bpf_program);
+    newXS_deffile("ebpf::c_bpf_loader::load_bpf_map", XS_ebpf__c_bpf_loader_load_bpf_map);
+    newXS_deffile("ebpf::c_bpf_loader::pin_bpf_map", XS_ebpf__c_bpf_loader_pin_bpf_map);
 #if PERL_VERSION_LE(5, 21, 5)
-#  if PERL_VERSION_GE(5, 9, 0)
+#if PERL_VERSION_GE(5, 9, 0)
     if (PL_unitcheckav)
         call_list(PL_scopestack_ix, PL_unitcheckav);
-#  endif
+#endif
     XSRETURN_YES;
 #else
     Perl_xs_boot_epilog(aTHX_ ax);
 #endif
 }
-
