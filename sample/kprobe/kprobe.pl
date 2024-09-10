@@ -14,16 +14,8 @@ my $loader = ebpf::loader->new($file);
 my $data = $loader->load_elf();
 # print Dumper($data);
 
-my %map_attr = (
-    "kprobe_map"=>{
-        "map_type"=>BPF_MAP_TYPE_ARRAY,
-        "key_size"=>4,    # sizeof(__u32)
-        "value_size"=>8,  # sizeof(__u64)
-        "max_entries"=>1, # 最大エントリ数
-        "map_flags"=>0    # 追加のフラグ
-    }
-);
-$loader -> load_bpf("kprobe/sys_execve", \%map_attr);
+
+$loader -> load_bpf("kprobe/sys_execve");
 
 # いろいろな出力方法があるっぽい
 # print Dumper($data);
