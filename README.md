@@ -7,13 +7,9 @@ perl Makefile.PL
 make
 make test
 make install
-
-# dest upload
-make dest
 ```
 
 ### running unittest
 ```shell
-prove -v -l t/*.t
+sudo prove -v -l t/*.t
 ```
-
