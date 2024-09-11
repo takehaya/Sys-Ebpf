@@ -5,18 +5,19 @@ use warnings;
 
 use ebpf::asm;
 use ebpf::reader;
+use ebpf::map;
 our $VERSION = $ebpf::VERSION;
 
 use Data::Dumper;
 
 use ebpf::elf::section_type qw(SHT_PROGBITS);
-use ebpf::constants::bpf_cmd qw(BPF_MAP_CREATE BPF_PROG_LOAD BPF_OBJ_PIN);
+use ebpf::constants::bpf_cmd qw(BPF_MAP_CREATE BPF_PROG_LOAD);
 use ebpf::constants::bpf_prog_type qw(BPF_PROG_TYPE_KPROBE);
 use ebpf::elf::section_type qw(SHT_RELA SHT_REL SHT_SYMTAB);
 use ebpf::elf::symbol_type qw(STT_OBJECT);
 use Errno qw(EACCES EPERM);
+use ebpf::syscall;
 
-require 'ebpf/syscall/sys/syscall.ph';
 
 sub new {
     my ($class, $file) = @_;
@@ -109,54 +110,6 @@ sub extract_bpf_map_attributes {
     return \@maps;
 }
 
-sub load_bpf_map {
-    my ($self, $map_attrs) = @_;
-    my $bpfelf = $self->{bpfelf};
-
-    my $defaults = {
-        map_name => "",
-        map_type => 0,
-        key_size => 0,
-        value_size => 0,
-        max_entries => 0,
-        map_flags => 0,
-        inner_map_fd => -1,
-        numa_node => 0,
-        map_ifindex => 0,
-        btf_fd => 0,
-        btf_key_type_id => 0,
-        btf_value_type_id => 0,
-        btf_vmlinux_value_type_id => 0,
-    };
-    my $attrs = {
-        %$defaults,
-        %$map_attrs,
-    };
-    my $attr = pack(
-        "L L L L L L L Z16 L L L L L",
-        $attrs->{map_type},
-        $attrs->{key_size},
-        $attrs->{value_size},
-        $attrs->{max_entries},
-        $attrs->{map_flags},
-        $attrs->{inner_map_fd},
-        $attrs->{numa_node},
-        $attrs->{map_name},
-        $attrs->{map_ifindex},
-        $attrs->{btf_fd},
-        $attrs->{btf_key_type_id},
-        $attrs->{btf_value_type_id},
-        $attrs->{btf_vmlinux_value_type_id}
-    );
-
-    my $fd = syscall(SYS_bpf(), BPF_MAP_CREATE, $attr, length($attr));
-    if ($fd < 0) {
-        die "BPF map load failed: $fd\n";
-    }
-
-    return $fd;
-}
-
 sub find_section {
     my ($self, $section_name) = @_;
     my $bpfelf = $self->{bpfelf};
@@ -229,7 +182,7 @@ sub load_bpf_program {
     );
 
     # syscallの実行
-    my $fd = syscall(SYS_bpf(), BPF_PROG_LOAD, $attr, length($attr));
+    my $fd = syscall(ebpf::syscall::SYS_bpf(), BPF_PROG_LOAD, $attr, length($attr));
 
     if ($fd < 0) {
         my $errno = $!;
@@ -243,50 +196,6 @@ sub load_bpf_program {
     print "BPF program loaded successfully with FD: $fd\n";
 
     return $fd;
-}
-
-# BPF_OBJ_PIN の実装
-# struct { /* anonymous struct used by BPF_OBJ_* commands */
-#     __aligned_u64	pathname;
-#     __u32		bpf_fd;
-#     __u32		file_flags;
-# };
-sub pin_bpf_map {
-    my ($map_fd, $pin_path) = @_;
-
-    # ファイルパスの NULL 終端文字列を作成
-    my $path_buf = pack("Z*", $pin_path);
-
-    # bpf_attr 構造体をパック
-    my $attr = pack("Q L L",
-        unpack("Q", pack("P", $path_buf)),  # pathname (ポインタ)
-        $map_fd,                            # bpf_fd
-        0                                   # file_flags (未使用)
-    );
-
-    # syscall を使用して BPF_OBJ_PIN を実行
-    my $res = syscall(SYS_bpf(), BPF_OBJ_PIN, $attr, length($attr));
-
-    if ($res < 0) {
-        my $errno = $!;
-        die "Failed to pin BPF map: $errno\n";
-    }
-
-    return $res;
-}
-
-# BPF_OBJ_PIN のunpinの実装
-# return:
-#   0: success
-#   -1: failed
-sub unpin_bpf_map {
-    my ($pin_path) = @_;
-
-    if (unlink($pin_path)) {
-        return 0;
-    } else {
-        return -1;
-    }
 }
 
 # リロケーションを適用
@@ -321,17 +230,15 @@ sub apply_map_relocations {
         }
         
         # `$map_data` の中のタプルを確認して、期待してるマップ名が存在するかチェック(fdを取得)
-        print "find map: $sym_name\n";
         my $map_fd = undef;
         for my $tuple (@$map_data) {
-            my ($map_name, $fd) = @$tuple;
+            my ($map_name, $map) = @$tuple;
             if ($sym_name eq $map_name) {
-                $map_fd = $fd;
+                $map_fd = $map->{fd};
                 last;  # マップが見つかったらループを抜ける
             }
         }
 
-        print "Symbol: $sym_name, Map FD: $map_fd\n";
         if (defined $map_fd) {    
             # # 指定されたオフセット位置にある `lddw` 命令（16バイト）を取得
             my $bpf_insn = substr($self->{reader}->{raw_elf_data}, $r_offset, 16);  # 16バイトを取得
@@ -358,29 +265,29 @@ sub apply_map_relocations {
             print "No matching map found for symbol: $sym_name\n";
         }
     }
-    print "Final instructions:\n";
 }
 
 # BPF プログラムとマップをロード
 # args:
 #   section_name: BPF プログラムのセクション名
 # return:
-#   map_data: マップ名とFDの組になったhashのリファレンス
+#   map_collection: マップ名とFDの組になったhashのリファレンス
 #   prog_fd: プログラムFD
 sub load_bpf {
     my ($self, $section_name) = @_;
     my $bpfelf = $self->{bpfelf};
     my $maps = $self->extract_bpf_map_attributes('maps');
     
-    my @map_data;
+    my @map_collection;
     # map_attr_refの各キー（マップ名）に対して処理を実行
     for my $map (@$maps) {
         my $map_name = $map->{map_name};
-        my $map_fd = $self->load_bpf_map($map);
+        my $map_instance = ebpf::map->create($map);
+        my $map_fd = $map_instance->{fd};
         if ($map_fd < 0) {
-            die "Failed to load BPF map: $map_name (FD: $map_fd)\n";
+            die "Failed to load BPF map: $map_name (FD: $map_fd})\n";
         }
-        push @map_data, [$map_name, $map_fd];
+        push @map_collection, [$map_name, $map_instance];
     }
 
     # リロケーションを適用
@@ -388,14 +295,14 @@ sub load_bpf {
     my $reloc_section = $bpfelf->{relocations}{".rel" . $section_name};
     my $prob_section = find_symbol_table_from_name($bpfelf->{sections}, $section_name);
     if (defined $reloc_section) {
-        $self->apply_map_relocations($prob_section, $reloc_section, $bpfelf, \@map_data);
+        $self->apply_map_relocations($prob_section, $reloc_section, $bpfelf, \@map_collection);
     }
 
     # todo: bpfprobが複数あるケースにも対応する
     # BPF プログラムをロード
     my $prog_fd = $self->load_bpf_program_from_elf($section_name);
 
-    return (\@map_data, $prog_fd);
+    return (\@map_collection, $prog_fd);
 }
 
 1;
