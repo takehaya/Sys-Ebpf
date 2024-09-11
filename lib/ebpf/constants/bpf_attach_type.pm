@@ -68,12 +68,12 @@ my @constants = (
 );
 
 # 定数を定義し、エクスポート用配列に追加
-our @EXPORT_OK;
-while (@constants) {
-    my ($name, $value) = (shift @constants, shift @constants);
+our @EXPORT_OK = keys %constants;
+our %EXPORT_TAGS = (all => \@EXPORT_OK);
+
+for my $name (@EXPORT_OK) {
     no strict 'refs';
-    *{$name} = sub { $value };
-    push @EXPORT_OK, $name;
+    *{$name} = sub () { $constants{$name} };
 }
 
 1;

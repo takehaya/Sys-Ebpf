@@ -6,7 +6,7 @@ use Exporter 'import';
 
 our $VERSION = $ebpf::VERSION;
 
-my @constants = (
+my %constants = (
     'BPF_MAP_TYPE_UNSPEC',                     0,
     'BPF_MAP_TYPE_HASH',                       1,
     'BPF_MAP_TYPE_ARRAY',                      2,
@@ -46,12 +46,12 @@ my @constants = (
     '__MAX_BPF_MAP_TYPE',                      34,
 );
 
-our @EXPORT_OK;
-while (@constants) {
-    my ($name, $value) = (shift @constants, shift @constants);
+our @EXPORT_OK = keys %constants;
+our %EXPORT_TAGS = (all => \@EXPORT_OK);
+
+for my $name (@EXPORT_OK) {
     no strict 'refs';
-    *{$name} = sub { $value };
-    push @EXPORT_OK, $name;
+    *{$name} = sub () { $constants{$name} };
 }
 
 1;

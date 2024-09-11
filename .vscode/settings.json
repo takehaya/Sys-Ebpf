@@ -5,6 +5,7 @@
         "bpf_helpers.h": "c",
         "string.h": "c",
         "bpf.h": "c",
-        "syscall.h": "c"
+        "syscall.h": "c",
+        "stdio.h": "c"
     }
 }
