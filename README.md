@@ -20,3 +20,8 @@ sudo prove -v -l t/*.t
 pip install pre-commit
 pre-commit install
 ```
+
+Running Linting
+```shell
+pre-commit run -a
+```
