@@ -234,7 +234,7 @@ sub apply_map_relocations {
         for my $tuple (@$map_data) {
             my ($map_name, $map) = @$tuple;
             if ($sym_name eq $map_name) {
-                $map_fd = $map->{fd};
+                $map_fd = $map->{map_fd};
                 last;  # マップが見つかったらループを抜ける
             }
         }
