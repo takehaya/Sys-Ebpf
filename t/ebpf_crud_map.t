@@ -55,23 +55,23 @@ sub run_test {
     my $map_fd = $map_instance->{map_fd};
     ok($map_fd > 0, "Created map fd is $map_fd");
     ok(
-        $map_instance->{map_flags} == BPF_F_NO_PREALLOC, 
+        $map_instance->{map_flags} == BPF_F_NO_PREALLOC,
         "Map flags are correct",
     );
     ok($map_instance->{key_size} == 20, "Key size is correct");
     ok($map_instance->{value_size} == 20, "Value size is correct");
 
-    my $origin_key = { 
-        uint8_id => 1, 
-        uint16_id => [1, 2], 
-        uint32_id => 1, 
-        uint64_id => 1 
+    my $origin_key = {
+        uint8_id => 1,
+        uint16_id => [1, 2],
+        uint32_id => 1,
+        uint64_id => 1
     };
-    my $origin_value = { 
-        uint8_value => [1, 2, 3, 4], 
-        uint16_value => [1, 2], 
-        uint32_value => 1, 
-        uint64_value => 1 
+    my $origin_value = {
+        uint8_value => [1, 2, 3, 4],
+        uint16_value => [1, 2],
+        uint32_value => 1,
+        uint64_value => 1
     };
     my $res = $map_instance->update($origin_key, $origin_value, BPF_ANY());
 

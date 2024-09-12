@@ -67,7 +67,7 @@ while (@constants) {
 
 sub get_machine_name {
     my ($self, $e_machine) = @_;
-    
+
     my %machine_names = (
         EM_NONE        => 'No machine',
         EM_M32         => 'AT&T WE 32100',
@@ -118,7 +118,7 @@ sub get_machine_name {
         EM_S390_OLD    => 'Old S/390 architecture',
         EM_CYGNUS_MN10300 => 'Panasonic/MEI MN10300, AM33',
     );
-    
+
     return $machine_names{$e_machine} || 'Unknown';
 }
 

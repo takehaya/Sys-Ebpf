@@ -98,7 +98,7 @@ sub new {
     } else {
         die "Invalid arguments for constructor";
     }
-    
+
     my $self = {
         code     => $args{code} || 0,
         dst_reg  => $args{dst_reg} || 0,
@@ -128,11 +128,11 @@ sub serialize_sequence {
 }
 sub serialize {
     my ($self) = @_;
-    
-    return pack('CCsL', 
-        $self->{code}, 
+
+    return pack('CCsL',
+        $self->{code},
         ($self->{src_reg} << 4)&0b11110000 | $self->{dst_reg}&0b00001111,
-        $self->{off}, 
+        $self->{off},
         $self->{imm}
     );
 }
@@ -144,7 +144,7 @@ sub deserialize {
     die "instruction too short" unless length($raw_insn) == 8;
 
     my ($code, $dst_src, $off, $imm) = unpack('CCsL', $raw_insn);
-    
+
     my $self = {
         code     => $code,
         dst_reg  => $dst_src & 0b00001111,
@@ -152,7 +152,7 @@ sub deserialize {
         off      => $off,
         imm      => $imm,
     };
-    
+
     bless $self, $class;
     return $self;
 }

@@ -2,5 +2,5 @@
 
 
 ```shell
-perl kprobe.pl 
+perl kprobe.pl
 ```

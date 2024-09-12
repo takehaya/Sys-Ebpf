@@ -151,7 +151,7 @@ sub parse_symbols {
     my $strtab_section = $sections->[$strtab_idx];
     my $strtab_offset = $strtab_section->{sh_offset};
     my $strtab_size = $strtab_section->{sh_size};
-    
+
     # get symbol table section
     my $symtab_section = find_section($sections, '.symtab');
     my $num_symbols = $symtab_section->{sh_size} / $symtab_section->{sh_entsize};
@@ -189,7 +189,7 @@ sub parse_symbols {
 sub parse_relocations {
     my ($data, $sections) = @_;
     my %relocations;
-    
+
     for my $section (@$sections) {
         unless ($section->{sh_type} == SHT_REL || $section->{sh_type} == SHT_RELA) {
             next;

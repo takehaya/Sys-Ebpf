@@ -3,7 +3,7 @@ use warnings;
 use Test::More;
 
 # Load the module you're testing
-use lib '../lib'; 
+use lib '../lib';
 use ebpf::asm;
 use ebpf::map;
 
@@ -29,7 +29,7 @@ my $map_fd = $map_instance->{map_fd};
 ok($map_fd > 0, "Created map fd is $map_fd");
 
 ok(
-    $map_instance->{map_flags} == combine_flags(BPF_F_NO_PREALLOC, BPF_F_NUMA_NODE), 
+    $map_instance->{map_flags} == combine_flags(BPF_F_NO_PREALLOC, BPF_F_NUMA_NODE),
     "Map flags are correct",
 );
 

@@ -168,7 +168,7 @@ subtest 'Test ebpf::asm macros cond' => sub {
     # This means: if (r1 > r2) jump +5 instructions
     my $jmp_gt_reg = ebpf::asm::BPF_JMP_REG(ebpf::asm::BPF_JGT, 1, 2, 5);
     is($jmp_gt_reg->get_code, ebpf::asm::BPF_JMP | ebpf::asm::BPF_JGT | ebpf::asm::BPF_X, 'JMP REG JGT code is correct');
-    
+
     # jlt r1, 10, +5
     # This means: if (r1 < 10) jump +5 instructions
     my $jmp_lt_imm = ebpf::asm::BPF_JMP_IMM(ebpf::asm::BPF_JLT, 1, 10, 5);

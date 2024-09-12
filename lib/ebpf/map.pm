@@ -6,11 +6,11 @@ use POSIX;
 our $VERSION = $ebpf::VERSION;
 
 use ebpf::constants::bpf_cmd qw(
-    BPF_MAP_CREATE 
-    BPF_MAP_LOOKUP_ELEM 
+    BPF_MAP_CREATE
+    BPF_MAP_LOOKUP_ELEM
     BPF_MAP_UPDATE_ELEM
     BPF_MAP_DELETE_ELEM
-    BPF_MAP_GET_NEXT_KEY 
+    BPF_MAP_GET_NEXT_KEY
     BPF_OBJ_PIN
 );
 use ebpf::constants::bpf_map_type qw(:all);
@@ -78,7 +78,7 @@ sub create {
     # key_size と value_size を自動計算
     $attrs->{key_size} = _calculate_size($attrs->{key_schema}) if $attrs->{key_schema};
     $attrs->{value_size} = _calculate_size($attrs->{value_schema}) if $attrs->{value_schema};
-    
+
     # cf. https://github.com/torvalds/linux/blob/master/include/uapi/linux/bpf.h#L1459
     my $attr = pack(
         "L L L L L L L Z16 L L L L L",
@@ -316,11 +316,11 @@ sub _unpack_value {
         my $byte_size = ($bit_size / 8) * $array_size;
         my @values = unpack("$pack_char$array_size", substr($data, $offset, $byte_size));
 
-        # If array_size > 1, return array reference        
+        # If array_size > 1, return array reference
         if ($array_size > 1) {
             return (\@values, $offset + $byte_size);
         }
-        
+
         # Otherwise, return the single value
         return ($values[0], $offset + $byte_size);
     }

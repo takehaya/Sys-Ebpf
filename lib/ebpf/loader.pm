@@ -32,7 +32,7 @@ sub load_elf {
 
     my $reader = ebpf::reader->new($file);
     $self->{reader} = $reader;
-    
+
     my $bpfelf = $reader->parse_ebpf();
     $self->{bpfelf} = $bpfelf;
 
@@ -75,7 +75,7 @@ sub extract_bpf_map_attributes {
     die "BPF map section '$section_name' not found in ELF file." unless $map_section;
 
     my $map_data = substr($self->{reader}->{raw_elf_data}, $map_section->{sh_offset}, $map_section->{sh_size});
-    
+
     # parse map attributes
     my @maps;
     my $offset = 0;
@@ -212,11 +212,11 @@ sub apply_map_relocations {
     my $symbols_section = $elf->{symbols};
     for my $reloc_section (@$reloc_sections) {
         my $r_info = $reloc_section->{r_info};
-        my $r_offset = $reloc_section->{r_offset} + $prob_section->{sh_offset}; 
+        my $r_offset = $reloc_section->{r_offset} + $prob_section->{sh_offset};
 
         my $sym_index = $r_info >> 32; # シンボルインデックスを取得
         my $reloc_type = $r_info & 0xFFFFFFFF; # リロケーションタイプを取得
-        
+
         # シンボルテーブルからrelocation対象になり得るシンボル名を取得
         my $symbol = find_symbol_table_from_idx($symbols_section, $sym_index);
         if (!$symbol) {
@@ -228,7 +228,7 @@ sub apply_map_relocations {
             print "Symbol not found for index: $sym_index\n";
             next;
         }
-        
+
         # `$map_data` の中のタプルを確認して、期待してるマップ名が存在するかチェック(fdを取得)
         my $map_fd = undef;
         for my $tuple (@$map_data) {
@@ -239,7 +239,7 @@ sub apply_map_relocations {
             }
         }
 
-        if (defined $map_fd) {    
+        if (defined $map_fd) {
             # # 指定されたオフセット位置にある `lddw` 命令（16バイト）を取得
             my $bpf_insn = substr($self->{reader}->{raw_elf_data}, $r_offset, 16);  # 16バイトを取得
             my $bpf_insn_len = length($bpf_insn);
@@ -277,7 +277,7 @@ sub load_bpf {
     my ($self, $section_name) = @_;
     my $bpfelf = $self->{bpfelf};
     my $maps = $self->extract_bpf_map_attributes('maps');
-    
+
     my @map_collection;
     # map_attr_refの各キー（マップ名）に対して処理を実行
     for my $map (@$maps) {
