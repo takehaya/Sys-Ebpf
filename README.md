@@ -1,27 +1,22 @@
 # perl-ebpf
+
+ebpf - It's pure-perl ebpf loader
+
+# SYNOPSIS
+
+    use ebpf;
+
+# DESCRIPTION
+
 The goal of this project is to enable the attachment of eBPF programs from Perl, create eBPF maps, and perform operations on those eBPF maps.
 
-## for develop
-### build and install
-```shell
-perl Makefile.PL
-make
-make test
-make install
-```
+# LICENSE
 
-### running unittest
-```shell
-sudo prove -v -l t/*.t
-```
+Copyright (C) Takeru Hayasaka.
 
-### devlop setting
-```shell
-pip install pre-commit
-pre-commit install
-```
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
 
-Running Linting
-```shell
-pre-commit run -a
-```
+# AUTHOR
+
+Takeru Hayasaka <hayatake396@gmail.com>
