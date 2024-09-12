@@ -96,39 +96,124 @@ sub create {
         value_size => $attrs->{value_size},
         max_entries => $attrs->{max_entries},
         map_flags => $attrs->{map_flags},
+        key_schema => $attrs->{key_schema},
+        value_schema => $attrs->{value_schema},
     );
 }
 
-sub lookup {
+# cf. https://github.com/torvalds/linux/blob/master/include/uapi/linux/bpf.h#L1501
+sub syscall_bpf_map_elem {
+    my ($cmd, $map_fd, $key, $value, $flags) = @_;
+
+    my $attr = pack("L L Q Q Q",
+        $map_fd,                        # union bpf_attr::map_fd(32bit)
+        0,                              # padding (32bit)
+        unpack("Q", pack("P", $key)),   # union bpf_attr::key(64bit)
+        unpack("Q", pack("P", $value)), # union bpf_attr::value(64bit)
+        $flags,                         # union bpf_attr::flags(64bit)
+
+    );
+    print "cmd: $cmd\n";
+    print unpack("H*", $attr), "\n";
+    print unpack("H*", $key), "\n";
+    return syscall(ebpf::syscall::SYS_bpf(), $cmd, $attr, length($attr));
+}
+
+
+sub raw_lookup {
     my ($self, $key, $flags) = @_;
     $flags //= 0;
     my $value = "\0" x $self->{value_size};
-    my $attr = pack("QQQQ", unpack("Q", pack("P", $key)), unpack("Q", pack("P", $value)), $flags, 0);
-    my $res = syscall(ebpf::syscall::SYS_bpf(), BPF_MAP_LOOKUP_ELEM(), $attr, length($attr));
+    my $res = syscall_bpf_map_elem(BPF_MAP_LOOKUP_ELEM(), $self->{map_fd}, $key, $value, $flags);
+    if ($res < 0) {
+        my $errno = $!;
+        warn "syscall_bpf_map_elem failed with errno $errno: $!";
+        die "Failed to lookup BPF map: $errno\n";
+    }
+
     return $res == 0 ? $value : undef;
+}
+
+sub raw_update {
+    my ($self, $key, $value, $flags) = @_;
+    $flags //= BPF_ANY();
+    my $res = syscall_bpf_map_elem(BPF_MAP_UPDATE_ELEM(), $self->{map_fd}, $key, $value, $flags);
+    if ($res < 0) {
+        my $errno = $!;
+        die "Failed to update BPF map: $errno\n";
+    }
+    return $res;
+}
+
+sub raw_delete {
+    my ($self, $key, $flags) = @_;
+    $flags //= BPF_ANY();
+    my $res = syscall_bpf_map_elem(BPF_MAP_DELETE_ELEM(), $self->{map_fd}, $key, 0, $flags);
+    if ($res < 0) {
+        my $errno = $!;
+        die "Failed to delete BPF map entry with key ", unpack("H*", $key), ": $errno\n";
+    }
+    return $res;
+}
+
+sub raw_get_next_key {
+    my ($self, $key) = @_;
+    my $next_key = "\0" x $self->{key_size};
+    my $res = syscall_bpf_map_elem(BPF_MAP_GET_NEXT_KEY(), $self->{map_fd}, $key, $next_key, 0);
+    return $res == 0 ? $next_key : undef;
 }
 
 sub update {
     my ($self, $key, $value, $flags) = @_;
     $flags //= BPF_ANY();
-    my $attr = pack("QQQQ", unpack("Q", pack("P", $key)), unpack("Q", pack("P", $value)), $flags, 0);
-    my $res = syscall(ebpf::syscall::SYS_bpf(), BPF_MAP_UPDATE_ELEM(), $attr, length($attr));
-    return $res == 0;
+
+    # Serialize key and value
+    if (!defined $self->{key_schema} || !defined $self->{value_schema}) {
+        die "Key and value schema must be defined to use update method\n";
+    }
+    my $packed_key = $self->_serialize($key, $self->{key_schema});
+    my $packed_value = $self->_serialize($value, $self->{value_schema});
+
+    return $self->raw_update($packed_key, $packed_value, $flags);
+}
+
+sub lookup {
+    my ($self, $key) = @_;
+    if (!defined $self->{key_schema} || !defined $self->{value_schema}) {
+        die "Key and value schema must be defined to use update method\n";
+    }
+    my $packed_key = $self->_serialize($key, $self->{key_schema});
+    my $packed_value = $self->raw_lookup($packed_key);
+    return undef unless defined $packed_value;
+    # return $self->_deserialize($packed_value, $self->{value_schema});
+    if ($self->{value_schema}) {
+        return $self->_deserialize($packed_value, $self->{value_schema});
+    }
+    return $packed_value;
 }
 
 sub delete {
-    my ($self, $key) = @_;
-    my $attr = pack("QQQ", unpack("Q", pack("P", $key)), 0, 0);
-    my $res = syscall(ebpf::syscall::SYS_bpf(), BPF_MAP_DELETE_ELEM(), $attr, length($attr));
-    return $res == 0;
+    my ($self, $key, $flags) = @_;
+    $flags //= BPF_ANY();
+    if (!defined $self->{key_schema} || !defined $self->{value_schema}) {
+        die "Key and value schema must be defined to use update method\n";
+    }
+    my $packed_key = $self->_serialize($key, $self->{key_schema});
+    print "Serialized key size: ", length($packed_key), " (Expected: ", $self->{key_size}, ")\n";
+    
+    if (length($packed_key) != $self->{key_size}) {
+        die "Key size mismatch. Expected $self->{key_size}, got " . length($packed_key) . "\n";
+    }
+
+    return $self->raw_delete($packed_key, $flags);
 }
 
 sub get_next_key {
     my ($self, $key) = @_;
-    my $next_key = "\0" x $self->{key_size};
-    my $attr = pack("QQQ", unpack("Q", pack("P", $key)), unpack("Q", pack("P", $next_key)), 0);
-    my $res = syscall(ebpf::syscall::SYS_bpf(), BPF_MAP_GET_NEXT_KEY(), $attr, length($attr));
-    return $res == 0 ? $next_key : undef;
+    my $packed_key = defined $key ? $self->_serialize($key, $self->{key_schema}) : undef;
+    my $next_packed_key = $self->raw_get_next_key($packed_key);
+    return undef unless defined $next_packed_key;
+    return $self->_deserialize($next_packed_key, $self->{key_schema});
 }
 
 sub get_fd { $_[0]->{fd} }
@@ -155,7 +240,9 @@ sub _serialize {
     for my $field (@$schema) {
         my ($name, $type) = @$field;
         my $value = $data->{$name};
-        push @packed, _pack_value($type, $value);
+        my $packed_value = _pack_value($type, $value);
+        print "Packed $name: ", unpack("H*", $packed_value), "\n";
+        push @packed, $packed_value;
     }
     return join('', @packed);
 }
@@ -166,11 +253,12 @@ sub _deserialize {
     my $result = {};
     for my $field (@$schema) {
         my ($name, $type) = @$field;
-        ($result->{$name}, $offset) = _unpack_value($type, $packed_data, $offset);
+        my ($value, $new_offset) = _unpack_value($type, $packed_data, $offset);
+        $result->{$name} = $value;
+        $offset = $new_offset;
     }
     return $result;
 }
-
 
 sub _match_uint_or_uint_array {
     my ($type) = @_;
@@ -202,10 +290,6 @@ sub _pack_value {
         return pack($pack_char, $value);
     }
 
-    if ($type =~ /^string\((\d+)\)$/) {
-        return pack("a$1", $value);
-    }
-
     die "Unsupported type: $type";
 }
 
@@ -224,15 +308,28 @@ sub _unpack_value {
     if (my ($bit_size, $array_size) = _match_uint_or_uint_array($type)) {
         $array_size //= 1;
         my $pack_char = _get_pack_char($bit_size);
-        return unpack_at("$pack_char$array_size", $data, $offset, ($bit_size / 8) * $array_size);
-    }
+        my $byte_size = ($bit_size / 8) * $array_size;
+        my @values = unpack("$pack_char$array_size", substr($data, $offset, $byte_size));
 
-    if ($type =~ /^string\((\d+)\)$/) {
-        my $len = $1;
-        return unpack_at("A$len", $data, $offset, $len);
+        # If array_size > 1, return array reference        
+        if ($array_size > 1) {
+            return (\@values, $offset + $byte_size);
+        }
+        
+        # Otherwise, return the single value
+        return ($values[0], $offset + $byte_size);
     }
 
     die "Unsupported type: $type";
+}
+sub unpack_at {
+    my ($template, $data, $offset, $length) = @_;
+    my $extracted = substr($data, $offset, $length);
+    my @unpacked = unpack($template, $extracted);
+
+    #リストコンテキストで呼び出された場合（@unpacked の全要素が必要な場合）、全ての解凍された値を返します
+    # スカラーコンテキストで呼び出された場合（単一の値のみが必要な場合）、最初の解凍された値のみを返します
+    return (wantarray ? @unpacked : $unpacked[0], $offset + $length);
 }
 
 # TODO: enable file_flags
