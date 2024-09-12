@@ -47,7 +47,7 @@ sub teardown {
     if ($map_instance) {
         $map_instance->close();
         undef $map_instance;
-        sleep 0.5;
+        sleep 1;
     }
 }
 
