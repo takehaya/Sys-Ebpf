@@ -1,7 +1,6 @@
 use strict;
 use warnings;
 use Test::More;
-use Test::Exception;
 
 # Load the module you're testing
 use lib '../lib';  # Adjust the path based on your module's location
