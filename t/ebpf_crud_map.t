@@ -94,7 +94,6 @@ sub run_test {
     teardown();
 }
 
-# テストの実行
 run_test();
 END {
     teardown();

@@ -3,7 +3,7 @@ use warnings;
 use Test::More;
 
 # Load the module you're testing
-use lib '../lib';  # Adjust the path based on your module's location
+use lib '../lib'; 
 use ebpf::asm;
 use ebpf::map;
 
@@ -16,7 +16,7 @@ my %map_attr = (
     map_type => BPF_MAP_TYPE_HASH,
     key_size => 4,    # sizeof(__u32)
     value_size => 8,  # sizeof(__u64)
-    max_entries => 1024, # 最大エントリ数
+    max_entries => 1024,
     map_name => "kprobe_map",
     map_flags => combine_flags(BPF_F_NO_PREALLOC, BPF_F_NUMA_NODE),
 );
