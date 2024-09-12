@@ -2,6 +2,7 @@ package ebpf::reader;
 
 use strict;
 use warnings;
+use utf8;
 
 our $VERSION = $ebpf::VERSION;
 

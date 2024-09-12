@@ -2,6 +2,7 @@ package ebpf::syscall;
 
 use strict;
 use warnings;
+use utf8;
 use Exporter 'import';
 
 require 'ebpf/syscall/sys/syscall.ph';

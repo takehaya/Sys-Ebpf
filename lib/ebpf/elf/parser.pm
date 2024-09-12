@@ -2,6 +2,7 @@ package ebpf::elf::parser;
 
 use strict;
 use warnings;
+use utf8;
 
 our $VERSION = $ebpf::VERSION;
 

@@ -2,6 +2,8 @@ package ebpf::constants::bpf_map_create_flags;
 
 use strict;
 use warnings;
+use utf8;
+
 use Exporter 'import';
 
 our $VERSION = $ebpf::VERSION;

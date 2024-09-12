@@ -1,5 +1,7 @@
 use strict;
 use warnings;
+use utf8;
+
 use Test::More;
 
 # Load the module you're testing

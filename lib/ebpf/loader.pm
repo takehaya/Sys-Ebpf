@@ -2,6 +2,7 @@ package ebpf::loader;
 
 use strict;
 use warnings;
+use utf8;
 
 use ebpf::asm;
 use ebpf::reader;

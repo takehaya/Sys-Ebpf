@@ -2,6 +2,8 @@ package ebpf::elf::section_flag_type;
 
 use strict;
 use warnings;
+use utf8;
+
 use Exporter 'import';
 
 our $VERSION = $ebpf::VERSION;

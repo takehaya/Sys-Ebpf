@@ -2,6 +2,8 @@ package ebpf::map;
 
 use strict;
 use warnings;
+use utf8;
+
 use POSIX;
 our $VERSION = $ebpf::VERSION;
 
