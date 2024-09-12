@@ -1,4 +1,4 @@
-package ebpf::elf::section_type;
+package sys::ebpf::elf::section_type;
 
 use strict;
 use warnings;
@@ -6,7 +6,7 @@ use utf8;
 
 use Exporter 'import';
 
-our $VERSION = $ebpf::VERSION;
+our $VERSION = $sys::ebpf::VERSION;
 
 my @constants = (
     'SHT_NULL',      0,          'SHT_PROGBITS', 1,

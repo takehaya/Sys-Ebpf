@@ -4,13 +4,13 @@ use strict;
 use warnings;
 use utf8;
 use lib '../../lib';    # lib ディレクトリへの相対パスを追加
-use ebpf::loader;
+use sys::ebpf::loader;
 use Data::Dumper ();
 
-use ebpf::constants::bpf_map_type ();
+use sys::ebpf::constants::bpf_map_type ();
 
 my $file   = "kprobe.o";
-my $loader = ebpf::loader->new($file);
+my $loader = sys::ebpf::loader->new($file);
 my $data   = $loader->load_elf();
 
 my ( $map_data, $prog_fd ) = $loader->load_bpf("kprobe/sys_execve");

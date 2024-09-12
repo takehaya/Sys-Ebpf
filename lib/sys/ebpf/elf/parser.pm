@@ -1,13 +1,13 @@
-package ebpf::elf::parser;
+package sys::ebpf::elf::parser;
 
 use strict;
 use warnings;
 use utf8;
 
-our $VERSION = $ebpf::VERSION;
+our $VERSION = $sys::ebpf::VERSION;
 
-use ebpf::elf::section_type qw( SHT_REL SHT_RELA );
-use ebpf::elf::machine_type qw( EM_BPF );
+use sys::ebpf::elf::section_type qw( SHT_REL SHT_RELA );
+use sys::ebpf::elf::machine_type qw( EM_BPF );
 
 # elf64形式はこの通り
 # cf. https://refspecs.linuxfoundation.org/elf/gabi4+/ch4.eheader.html
@@ -80,7 +80,7 @@ sub parse_elf {
     $elf->{e_type}    = $e_type;
     $elf->{e_machine} = $e_machine;
     $elf->{e_machine_name}
-        = ebpf::elf::machine_type->get_machine_name($e_machine);
+        = sys::ebpf::elf::machine_type->get_machine_name($e_machine);
     $elf->{e_version}   = $e_version;
     $elf->{e_entry}     = $e_entry;
     $elf->{e_phoff}     = $e_phoff;

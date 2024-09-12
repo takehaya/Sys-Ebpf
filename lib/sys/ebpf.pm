@@ -1,4 +1,4 @@
-package ebpf;
+package sys::ebpf;
 
 use strict;
 use warnings;
@@ -16,14 +16,14 @@ ebpf - Pure-Perl interface for eBPF (extended Berkeley Packet Filter)
 
 =head1 SYNOPSIS
 
-  use ebpf;
+  use sys::ebpf::;
 
   # Create a new eBPF loader
-  my $loader = ebpf::loader->new();
+  my $loader = sys::ebpf::loader->new();
 
   # Load a BPF map
   my $map_fd = $loader->load_bpf_map({
-      map_type => ebpf::constants::bpf_map_type::BPF_MAP_TYPE_ARRAY,
+      map_type => sys::ebpf::constants::bpf_map_type::BPF_MAP_TYPE_ARRAY,
       key_size => 4,
       value_size => 8,
       max_entries => 1,
@@ -46,13 +46,13 @@ This module includes several submodules:
 
 =over 6
 
-=item * C<ebpf::loader> - For loading eBPF programs and maps
+=item * C<sys::ebpf::loader> - For loading eBPF programs and maps
 
-=item * C<ebpf::asm> - eBPF assembly helpers
+=item * C<sys::ebpf::asm> - eBPF assembly helpers
 
-=item * C<ebpf::reader> - For reading ELF files
+=item * C<sys::ebpf::reader> - For reading ELF files
 
-=item * C<ebpf::elf::parser> - For parsing ELF files
+=item * C<sys::ebpf::elf::parser> - For parsing ELF files
 
 =back
 
@@ -65,13 +65,13 @@ Refer to the documentation of individual submodules for specific functions and u
 
 =over 4
 
-=item * L<ebpf::loader>
+=item * L<sys::ebpf::loader>
 
-=item * L<ebpf::asm>
+=item * L<sys::ebpf::asm>
 
-=item * C<ebpf::reader> - For reading ELF files
+=item * C<sys::ebpf::reader> - For reading ELF files
 
-=item * C<ebpf::elf::parser> - For parsing ELF files
+=item * C<sys::ebpf::elf::parser> - For parsing ELF files
 
 =back
 

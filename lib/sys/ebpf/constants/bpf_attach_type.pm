@@ -1,4 +1,4 @@
-package ebpf::constants::bpf_attach_type;
+package sys::ebpf::constants::bpf_attach_type;
 
 use strict;
 use warnings;
@@ -6,7 +6,7 @@ use utf8;
 
 use Exporter 'import';
 
-our $VERSION = $ebpf::VERSION;
+our $VERSION = $sys::ebpf::VERSION;
 
 # 定数を配列で定義
 my @constants = (

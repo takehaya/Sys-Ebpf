@@ -1,4 +1,4 @@
-package ebpf::constants::bpf_map_update_flags;
+package sys::ebpf::constants::bpf_map_update_flags;
 
 use strict;
 use warnings;
@@ -6,7 +6,7 @@ use utf8;
 
 use Exporter 'import';
 
-our $VERSION = $ebpf::VERSION;
+our $VERSION = $sys::ebpf::VERSION;
 
 my %constants = (
     'BPF_ANY'     => 0,    # create new element or update existing

@@ -1,4 +1,4 @@
-package ebpf::elf::symbol_bind;
+package sys::ebpf::elf::symbol_bind;
 
 use strict;
 use warnings;
@@ -6,7 +6,7 @@ use utf8;
 
 use Exporter 'import';
 
-our $VERSION = $ebpf::VERSION;
+our $VERSION = $sys::ebpf::VERSION;
 
 # Symbol Bindings (upper 4 bits of st_info)
 my @constants = (

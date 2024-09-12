@@ -6,9 +6,9 @@ use Test::More import => [qw( done_testing is is_deeply subtest )];
 use Data::Dumper ();
 
 use lib '../lib';
-use ebpf::map;
+use sys::ebpf::map;
 
-my $map = ebpf::map->new(
+my $map = sys::ebpf::map->new(
     key_schema => [
         [ 'uint8_id',  'uint8[4]' ],
         [ 'uint16_id', 'uint16[2]' ],
@@ -41,7 +41,7 @@ subtest '_match_uint_or_uint_array tests' => sub {
 
     for my $case (@test_cases) {
         my ( $bit_size, $array_size )
-            = ebpf::map::_match_uint_or_uint_array( $case->{type} );
+            = sys::ebpf::map::_match_uint_or_uint_array( $case->{type} );
         is( $bit_size, $case->{bitsize},
             "Correct bit size for $case->{type}" );
         is( $array_size, $case->{array_size},
@@ -67,11 +67,12 @@ subtest '_pack_value and _unpack_value tests' => sub {
     );
 
     for my $case (@test_cases) {
-        my $packed = ebpf::map::_pack_value( $case->{type}, $case->{value} );
+        my $packed
+            = sys::ebpf::map::_pack_value( $case->{type}, $case->{value} );
         is( $packed, $case->{expected}, "Correctly packed $case->{type}" );
 
         my ( $unpacked, $offset )
-            = ebpf::map::_unpack_value( $case->{type}, $packed, 0 );
+            = sys::ebpf::map::_unpack_value( $case->{type}, $packed, 0 );
         is_deeply( $unpacked, $case->{value},
             "Correctly unpacked $case->{type}" );
     }

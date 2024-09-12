@@ -4,7 +4,7 @@ ebpf - It's pure-perl ebpf loader
 
 # SYNOPSIS
 
-    use ebpf;
+    use sys::ebpf::;
 
 # DESCRIPTION
 

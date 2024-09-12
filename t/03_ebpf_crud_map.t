@@ -7,13 +7,14 @@ use Data::Dumper ();
 
 # Load the module you're testing
 use lib '../lib';
-use ebpf::asm;
-use ebpf::map;
+use sys::ebpf::asm;
+use sys::ebpf::map;
 
-use ebpf::constants::bpf_map_type         qw( BPF_MAP_TYPE_HASH );
-use ebpf::constants::bpf_map_create_flags qw(BPF_F_NO_PREALLOC);
-use ebpf::constants::bpf_prog_type        ();
-use ebpf::constants::bpf_map_update_flags qw(BPF_ANY BPF_NOEXIST BPF_EXIST);
+use sys::ebpf::constants::bpf_map_type         qw( BPF_MAP_TYPE_HASH );
+use sys::ebpf::constants::bpf_map_create_flags qw(BPF_F_NO_PREALLOC);
+use sys::ebpf::constants::bpf_prog_type        ();
+use sys::ebpf::constants::bpf_map_update_flags
+    qw(BPF_ANY BPF_NOEXIST BPF_EXIST);
 
 plan skip_all => "This test must be run as root" if $> != 0;
 
@@ -39,7 +40,7 @@ sub setup {
         map_flags => BPF_F_NO_PREALLOC,
     );
 
-    $map_instance = ebpf::map->create( \%map_attr );
+    $map_instance = sys::ebpf::map->create( \%map_attr );
 }
 
 sub teardown {
