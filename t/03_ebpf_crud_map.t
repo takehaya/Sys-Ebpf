@@ -24,7 +24,7 @@ sub setup {
     my %map_attr = (
         map_name    => "ebpf_crud_map",
         map_type    => BPF_MAP_TYPE_HASH,
-        max_entries => 128,
+        max_entries => 1,
         key_schema  => [
             [ 'uint8_id',  'uint8[4]' ],
             [ 'uint16_id', 'uint16[2]' ],
@@ -47,7 +47,8 @@ sub teardown {
     if ($map_instance) {
         $map_instance->close();
         undef $map_instance;
-        sleep 1;
+
+        # sleep 1;
     }
 }
 
