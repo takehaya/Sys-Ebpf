@@ -129,6 +129,12 @@ sub syscall_bpf_map_elem {
     my $result
         = syscall( sys::ebpf::syscall::SYS_bpf(), $cmd, $attr,
         length($attr) );
+    if ( $result < 0 ) {
+        my $errno = $!;
+        warn sprintf(
+            "syscall_bpf_map_elem failed with errno %d (%s). Command: %d, Map FD: %d, Flags: %d",
+            $errno, $!, $cmd, $map_fd, $flags );
+    }
     return $result;
 }
 

@@ -2,25 +2,19 @@ use strict;
 use warnings;
 use utf8;
 
-use Test::More import => [qw( done_testing is_deeply ok plan )];
-use Data::Dumper ();
+use Test::More import => [qw( done_testing is_deeply ok plan subtest )];
+use Time::HiRes qw( usleep );
 
-# Load the module you're testing
 use lib '../lib';
-use sys::ebpf::asm;
 use sys::ebpf::map;
-
-use sys::ebpf::constants::bpf_map_type         qw( BPF_MAP_TYPE_HASH );
+use sys::ebpf::constants::bpf_map_type         qw(BPF_MAP_TYPE_HASH);
 use sys::ebpf::constants::bpf_map_create_flags qw(BPF_F_NO_PREALLOC);
-use sys::ebpf::constants::bpf_prog_type        ();
 use sys::ebpf::constants::bpf_map_update_flags
     qw(BPF_ANY BPF_NOEXIST BPF_EXIST);
 
 plan skip_all => "This test must be run as root" if $> != 0;
 
-my $map_instance;
-
-sub setup {
+sub create_map {
     my %map_attr = (
         map_name    => "ebpf_crud_map",
         map_type    => BPF_MAP_TYPE_HASH,
@@ -40,62 +34,77 @@ sub setup {
         map_flags => BPF_F_NO_PREALLOC,
     );
 
-    $map_instance = sys::ebpf::map->create( \%map_attr );
+    my $map = sys::ebpf::map->create( \%map_attr );
+    usleep(10000);    # 10ms wait after creation
+    return $map;
 }
 
-sub teardown {
-    if ($map_instance) {
-        $map_instance->close();
-        undef $map_instance;
-
-        # sleep 1;
-    }
-}
-
-sub run_test {
-    setup();
-
-    # テストコード
-    my $map_fd = $map_instance->{map_fd};
-    ok( $map_fd > 0, "Created map fd is $map_fd" );
-    ok( $map_instance->{map_flags} == BPF_F_NO_PREALLOC,
-        "Map flags are correct",
-    );
-    ok( $map_instance->{key_size} == 20,   "Key size is correct" );
-    ok( $map_instance->{value_size} == 20, "Value size is correct" );
-
-    my $origin_key = {
-        uint8_id  => 1,
+subtest 'test_map_creation' => sub {
+    my $map = create_map();
+    ok( $map->{map_fd} > 0, "Created map fd is " . $map->{map_fd} );
+    ok( $map->{map_flags} == BPF_F_NO_PREALLOC, "Map flags are correct" );
+    ok( $map->{key_size} == 20,                 "Key size is correct" );
+    ok( $map->{value_size} == 20,               "Value size is correct" );
+    $map->close();
+    usleep(10000);    # 10ms wait after closure
+};
+subtest 'test_map_update_and_lookup' => sub {
+    my $map = create_map();
+    my $key = {
+        uint8_id  => [ 1, 0, 2, 0 ],
         uint16_id => [ 1, 2 ],
         uint32_id => 1,
         uint64_id => 1
     };
-    my $origin_value = {
+    my $value = {
         uint8_value  => [ 1, 2, 3, 4 ],
         uint16_value => [ 1, 2 ],
         uint32_value => 1,
         uint64_value => 1
     };
-    my $res = $map_instance->update( $origin_key, $origin_value, BPF_ANY() );
 
-    ok( $res >= 0, "Updated map: $res" );
+    my $res = $map->update( $key, $value, BPF_ANY() );
+    ok( $res == 0, "Updated map: $res" );
 
-    my $value = $map_instance->lookup($origin_key);
-    ok( defined $value, "Found value" );
-    is_deeply( $value, $origin_value, "Value is correct" );
+    my $lookup_value = $map->lookup($key);
+    ok( defined $lookup_value, "Found value" );
+    is_deeply( $lookup_value, $value, "Value is correct" );
 
-    $res = $map_instance->delete($origin_key);
-    ok( $res == 0, "Deleted map: $res" );
+    $map->close();
+    usleep(10000);    # 10ms wait after closure
+};
+subtest 'test_map_delete' => sub {
+    my $map = create_map();
+    my $key = {
+        uint8_id  => [ 1, 0, 2, 0 ],
+        uint16_id => [ 1, 2 ],
+        uint32_id => 1,
+        uint64_id => 1
+    };
+    my $value = {
+        uint8_value  => [ 1, 2, 3, 4 ],
+        uint16_value => [ 1, 2 ],
+        uint32_value => 1,
+        uint64_value => 1
+    };
 
-    $value = $map_instance->lookup($origin_key);
-    ok( !defined $value, "Value not found after deletion" );
+    # Update the map and verify the write
+    my $update_res = $map->update( $key, $value, BPF_ANY() );
+    ok( $update_res == 0, "Updated map: $update_res" );
 
-    teardown();
-}
+    my $verify_value = $map->lookup($key);
+    ok( defined $verify_value, "Value found after update" );
+    is_deeply( $verify_value, $value, "Written value is correct" );
 
-run_test();
+    # Now proceed with deletion test
+    my $res = $map->delete($key);
+    ok( $res == 0, "Deleted map entry: $res" );
 
-END {
-    teardown();
-}
+    my $lookup_value = $map->lookup($key);
+    ok( !defined $lookup_value, "Value not found after deletion" );
+
+    $map->close();
+    usleep(10000);    # 10ms wait after closure
+};
+
 done_testing();
