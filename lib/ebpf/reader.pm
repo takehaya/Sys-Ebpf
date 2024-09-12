@@ -6,11 +6,11 @@ use utf8;
 
 our $VERSION = $ebpf::VERSION;
 
-use ebpf::elf::parser;
+use ebpf::elf::parser ();
 
 # cf. https://www.ietf.org/archive/id/draft-thaler-bpf-elf-00.html
 sub new {
-    my ($class, $file) = @_;
+    my ( $class, $file ) = @_;
     my $self = { file => $file };
     bless $self, $class;
     return $self;
@@ -19,13 +19,13 @@ sub new {
 # ebpf binaryを読み出して、elfをパースする
 sub parse_ebpf {
     my ($self) = @_;
-    my $data = read_file($self->{file});
+    my $data = read_file( $self->{file} );
     $self->{raw_elf_data} = $data;
     my $elfloader = ebpf::elf::parser->new($data);
-    my $elf = $elfloader->parse_elf();
+    my $elf       = $elfloader->parse_elf();
 
     # BPF Type only validate
-    if (! $elfloader->is_bpf_machine_type($elf->{e_machine})) {
+    if ( !$elfloader->is_bpf_machine_type( $elf->{e_machine} ) ) {
         die "Invalid ELF type: $elf->{e_type}";
     }
 

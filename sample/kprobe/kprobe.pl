@@ -2,18 +2,18 @@
 
 use strict;
 use warnings;
-use lib '../../lib';  # lib ディレクトリへの相対パスを追加
+use utf8;
+use lib '../../lib';    # lib ディレクトリへの相対パスを追加
 use ebpf::loader;
-use Data::Dumper;
+use Data::Dumper ();
 
-use ebpf::constants::bpf_map_type qw(BPF_MAP_TYPE_ARRAY);
+use ebpf::constants::bpf_map_type ();
 
-my $file = "kprobe.o";
+my $file   = "kprobe.o";
 my $loader = ebpf::loader->new($file);
-my $data = $loader->load_elf();
+my $data   = $loader->load_elf();
 
-my($map_data, $prog_fd)=$loader -> load_bpf("kprobe/sys_execve");
-
+my ( $map_data, $prog_fd ) = $loader->load_bpf("kprobe/sys_execve");
 
 # # Kprobeをアタッチ
 # my $kprobe_info = $loader->attach_kprobe($prog_fd, $fn);

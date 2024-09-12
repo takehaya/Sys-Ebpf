@@ -6,8 +6,8 @@ use utf8;
 
 our $VERSION = $ebpf::VERSION;
 
-use ebpf::elf::section_type qw(SHT_RELA SHT_REL SHT_SYMTAB);
-use ebpf::elf::machine_type qw(EM_BPF);
+use ebpf::elf::section_type qw( SHT_REL SHT_RELA );
+use ebpf::elf::machine_type qw( EM_BPF );
 
 # elf64形式はこの通り
 # cf. https://refspecs.linuxfoundation.org/elf/gabi4+/ch4.eheader.html
@@ -38,11 +38,10 @@ use ebpf::elf::machine_type qw(EM_BPF);
 # typedef uint64_t	Elf64_Lword;
 # typedef uint64_t	Elf64_Xword;
 
-
 # ebpf binaryを読み出して、elfをパースします
 # コンストラクタにはファイルのバイナリデータが渡されます
 sub new {
-    my ($class, $data) = @_;
+    my ( $class, $data ) = @_;
     my $self = { data => $data };
     bless $self, $class;
     return $self;
@@ -53,47 +52,60 @@ sub parse_elf {
     my ($self) = @_;
     my $elf = {};
 
-    my $data = $self->{data};
+    my $data        = $self->{data};
     my $byte_offset = 0;
-    my $byte_range = 16; # ELFヘッダは16バイト
-    # ELFヘッダをパース
-    my ($magic, $class, $endian, $version, $abi, $abi_version) = unpack('A4C3A5C2', substr($data, $byte_offset, $byte_offset + $byte_range));
-    $elf->{magic} = $magic;
-    $elf->{class} = $class == 1 ? 'ELF32' : 'ELF64';
-    $elf->{endian} = $endian == 1 ? 'little endian' : 'big endian';
-    $elf->{version} = $version;
-    $elf->{abi} = $abi;
+    my $byte_range  = 16;              # ELFヘッダは16バイト
+                                       # ELFヘッダをパース
+    my ( $magic, $class, $endian, $version, $abi, $abi_version )
+        = unpack( 'A4C3A5C2',
+        substr( $data, $byte_offset, $byte_offset + $byte_range ) );
+    $elf->{magic}       = $magic;
+    $elf->{class}       = $class == 1  ? 'ELF32'         : 'ELF64';
+    $elf->{endian}      = $endian == 1 ? 'little endian' : 'big endian';
+    $elf->{version}     = $version;
+    $elf->{abi}         = $abi;
     $elf->{abi_version} = $abi_version;
 
     $byte_offset += $byte_range;
     $byte_range = 32;
-    # ELFファイルのサイズなどを取得
-    my ($e_type, $e_machine, $e_version, $e_entry, $e_phoff, $e_shoff, $e_flags, $e_ehsize, $e_phentsize,
-        $e_phnum, $e_shentsize, $e_shnum, $e_shstrndx) = unpack('S S L Q Q Q L S S S S S S', substr($data, $byte_offset, $byte_offset + $byte_range));
 
-    $elf->{e_type} = $e_type;
+    # ELFファイルのサイズなどを取得
+    my ($e_type,      $e_machine, $e_version, $e_entry,     $e_phoff,
+        $e_shoff,     $e_flags,   $e_ehsize,  $e_phentsize, $e_phnum,
+        $e_shentsize, $e_shnum,   $e_shstrndx
+        )
+        = unpack( 'S S L Q Q Q L S S S S S S',
+        substr( $data, $byte_offset, $byte_offset + $byte_range ) );
+
+    $elf->{e_type}    = $e_type;
     $elf->{e_machine} = $e_machine;
-    $elf->{e_machine_name} = ebpf::elf::machine_type->get_machine_name($e_machine);
-    $elf->{e_version} = $e_version;
-    $elf->{e_entry} = $e_entry;
-    $elf->{e_phoff} = $e_phoff;
-    $elf->{e_shoff} = $e_shoff;
-    $elf->{e_flags} = $e_flags;
-    $elf->{e_ehsize} = $e_ehsize;
+    $elf->{e_machine_name}
+        = ebpf::elf::machine_type->get_machine_name($e_machine);
+    $elf->{e_version}   = $e_version;
+    $elf->{e_entry}     = $e_entry;
+    $elf->{e_phoff}     = $e_phoff;
+    $elf->{e_shoff}     = $e_shoff;
+    $elf->{e_flags}     = $e_flags;
+    $elf->{e_ehsize}    = $e_ehsize;
     $elf->{e_phentsize} = $e_phentsize;
-    $elf->{e_phnum} = $e_phnum;
+    $elf->{e_phnum}     = $e_phnum;
     $elf->{e_shentsize} = $e_shentsize;
-    $elf->{e_shnum} = $e_shnum;
-    $elf->{e_shstrndx} = $e_shstrndx;
+    $elf->{e_shnum}     = $e_shnum;
+    $elf->{e_shstrndx}  = $e_shstrndx;
 
     # section tableのセクション名を取得するために文字列テーブルセクションを取得
-    my $strtab_section_offset = $elf->{e_shoff} + $elf->{e_shstrndx} * $elf->{e_shentsize};
-    my $strtab_offset = unpack('Q', substr($data, $strtab_section_offset + 24, 8));
+    my $strtab_section_offset
+        = $elf->{e_shoff} + $elf->{e_shstrndx} * $elf->{e_shentsize};
+    my $strtab_offset
+        = unpack( 'Q', substr( $data, $strtab_section_offset + 24, 8 ) );
 
     # セクションヘッダとシンボルテーブルをパースするための追加処理
-    $elf->{sections} = parse_sections($data, $elf->{e_shoff}, $elf->{e_shnum}, $elf->{e_shentsize}, $strtab_offset);
-    $elf->{symbols} = parse_symbols($data, $elf->{sections}, $elf->{e_shstrndx});
-    $elf->{relocations} = parse_relocations($data, $elf->{sections});
+    $elf->{sections}
+        = parse_sections( $data, $elf->{e_shoff}, $elf->{e_shnum},
+        $elf->{e_shentsize}, $strtab_offset );
+    $elf->{symbols}
+        = parse_symbols( $data, $elf->{sections}, $elf->{e_shstrndx} );
+    $elf->{relocations} = parse_relocations( $data, $elf->{sections} );
     return $elf;
 }
 
@@ -107,31 +119,36 @@ sub parse_elf {
 # return
 #   sections: セクション情報の配列
 sub parse_sections {
-    my ($data, $shoff, $shnum, $shentsize, $strtab_offset) = @_;
+    my ( $data, $shoff, $shnum, $shentsize, $strtab_offset ) = @_;
     my @sections;
 
-    for my $i (0 .. $shnum - 1) {
+    for my $i ( 0 .. $shnum - 1 ) {
         my $offset = $shoff + $i * $shentsize;
-        my ($sh_name_offset, $sh_type, $sh_flags, $sh_addr, $sh_offset, $sh_size, $sh_link, $sh_info, $sh_addralign, $sh_entsize) =
-            unpack('L L Q Q Q Q L L Q Q', substr($data, $offset, $shentsize));
+        my ($sh_name_offset, $sh_type, $sh_flags, $sh_addr,
+            $sh_offset,      $sh_size, $sh_link,  $sh_info,
+            $sh_addralign,   $sh_entsize
+            )
+            = unpack( 'L L Q Q Q Q L L Q Q',
+            substr( $data, $offset, $shentsize ) );
 
         # セクション名を取得
         my $name_offset = $strtab_offset + $sh_name_offset;
-        my $sh_name = unpack('Z*', substr($data, $name_offset));
+        my $sh_name     = unpack( 'Z*', substr( $data, $name_offset ) );
 
-        push @sections, {
-            sh_index => $i,
-            sh_name => $sh_name,
-            sh_type => $sh_type,
-            sh_flags => $sh_flags,
-            sh_addr => $sh_addr,
-            sh_offset => $sh_offset,
-            sh_size => $sh_size,
-            sh_link => $sh_link,
-            sh_info => $sh_info,
+        push @sections,
+            {
+            sh_index     => $i,
+            sh_name      => $sh_name,
+            sh_type      => $sh_type,
+            sh_flags     => $sh_flags,
+            sh_addr      => $sh_addr,
+            sh_offset    => $sh_offset,
+            sh_size      => $sh_size,
+            sh_link      => $sh_link,
+            sh_info      => $sh_info,
             sh_addralign => $sh_addralign,
-            sh_entsize => $sh_entsize,
-        };
+            sh_entsize   => $sh_entsize,
+            };
     }
 
     return \@sections;
@@ -145,25 +162,34 @@ sub parse_sections {
 # return
 #   symbols: シンボルテーブルのハッシュのリファレンス
 sub parse_symbols {
-    my ($data, $sections, $strtab_idx) = @_;
+    my ( $data, $sections, $strtab_idx ) = @_;
     my @symbols;
 
     # get string table section
     my $strtab_section = $sections->[$strtab_idx];
-    my $strtab_offset = $strtab_section->{sh_offset};
-    my $strtab_size = $strtab_section->{sh_size};
+    my $strtab_offset  = $strtab_section->{sh_offset};
+    my $strtab_size    = $strtab_section->{sh_size};
 
     # get symbol table section
-    my $symtab_section = find_section($sections, '.symtab');
-    my $num_symbols = $symtab_section->{sh_size} / $symtab_section->{sh_entsize};
+    my $symtab_section = find_section( $sections, '.symtab' );
+    my $num_symbols
+        = $symtab_section->{sh_size} / $symtab_section->{sh_entsize};
 
-    for my $i (0 .. $num_symbols - 1) {
-        my $offset = $symtab_section->{sh_offset} + $i * $symtab_section->{sh_entsize};
-        my ($st_name, $st_info, $st_other, $st_shndx, $st_value, $st_size) =
-            unpack('L C C S Q Q', substr($data, $offset, $symtab_section->{sh_entsize}));
+    for my $i ( 0 .. $num_symbols - 1 ) {
+        my $offset = $symtab_section->{sh_offset}
+            + $i * $symtab_section->{sh_entsize};
+        my ( $st_name, $st_info, $st_other, $st_shndx, $st_value, $st_size )
+            = unpack( 'L C C S Q Q',
+            substr( $data, $offset, $symtab_section->{sh_entsize} ) );
 
         my $name_offset = $strtab_offset + $st_name;
-        my $name = unpack('Z*', substr($data, $name_offset, $strtab_size - ($name_offset - $strtab_offset)));
+        my $name        = unpack(
+            'Z*',
+            substr(
+                $data, $name_offset,
+                $strtab_size - ( $name_offset - $strtab_offset )
+            )
+        );
         my $symbol = {
             st_name  => $name,
             st_info  => $st_info,
@@ -188,51 +214,59 @@ sub parse_symbols {
 # return
 #   relocations: リロケーションテーブルのハッシュのリファレンス
 sub parse_relocations {
-    my ($data, $sections) = @_;
+    my ( $data, $sections ) = @_;
     my %relocations;
 
     for my $section (@$sections) {
-        unless ($section->{sh_type} == SHT_REL || $section->{sh_type} == SHT_RELA) {
+        unless ( $section->{sh_type} == SHT_REL
+            || $section->{sh_type} == SHT_RELA )
+        {
             next;
         }
         my @relocation;
-        my $sh_type = $section->{sh_type};
+        my $sh_type         = $section->{sh_type};
         my $num_relocations = $section->{sh_size} / $section->{sh_entsize};
 
-        for my $i (0 .. $num_relocations - 1) {
+        for my $i ( 0 .. $num_relocations - 1 ) {
             my $offset = $section->{sh_offset} + $i * $section->{sh_entsize};
-            my ($r_offset, $r_info, $r_addend);
+            my ( $r_offset, $r_info, $r_addend );
 
             # リロケーションテーブルのエントリをパース
             # 64ビットの場合はQで8バイトを読み込む(TODO: 32ビットの場合はLで4バイトを読み込む)
-            if ($sh_type == SHT_REL) {
-                ($r_offset, $r_info) = unpack('Q<Q<', substr($data, $offset, $section->{sh_entsize}));
+            if ( $sh_type == SHT_REL ) {
+                ( $r_offset, $r_info )
+                    = unpack( 'Q<Q<',
+                    substr( $data, $offset, $section->{sh_entsize} ) );
                 $r_addend = undef;
-            } else { # SHT_RELA
-                ($r_offset, $r_info, $r_addend) = unpack('Q<Q<Q<', substr($data, $offset, $section->{sh_entsize}));
+            }
+            else {    # SHT_RELA
+                ( $r_offset, $r_info, $r_addend )
+                    = unpack( 'Q<Q<Q<',
+                    substr( $data, $offset, $section->{sh_entsize} ) );
             }
 
-            push @relocation, {
-                sh_type => $sh_type,
+            push @relocation,
+                {
+                sh_type  => $sh_type,
                 r_offset => $r_offset,
-                r_info => $r_info,
+                r_info   => $r_info,
                 r_addend => $r_addend,
-            };
+                };
         }
-        $relocations{$section->{sh_name}} = \@relocation;
+        $relocations{ $section->{sh_name} } = \@relocation;
     }
 
     return \%relocations;
 }
 
 sub is_bpf_machine_type {
-    my ($self, $e_machine) = @_;
+    my ( $self, $e_machine ) = @_;
     return $e_machine == EM_BPF;
 }
 
 sub find_section {
-    my ($sections, $name) = @_;
-    return (grep { $_->{sh_name} eq $name } @$sections)[0];
+    my ( $sections, $name ) = @_;
+    return ( grep { $_->{sh_name} eq $name } @$sections )[0];
 }
 
 1;
