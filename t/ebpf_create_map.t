@@ -7,27 +7,33 @@ use lib '../lib';  # Adjust the path based on your module's location
 use ebpf::asm;
 use ebpf::map;
 
-use ebpf::constants::bpf_map_type qw(BPF_MAP_TYPE_ARRAY);
+use ebpf::constants::bpf_map_type qw(BPF_MAP_TYPE_HASH);
+use ebpf::constants::bpf_map_create_flags qw(BPF_F_NO_PREALLOC BPF_F_NUMA_NODE combine_flags);
 
 plan skip_all => "This test must be run as root" if $> != 0;
 
 my %map_attr = (
-    map_type => BPF_MAP_TYPE_ARRAY,
+    map_type => BPF_MAP_TYPE_HASH,
     key_size => 4,    # sizeof(__u32)
     value_size => 8,  # sizeof(__u64)
-    max_entries => 1, # 最大エントリ数
-    map_flags => 0,   # 追加のフラグ
+    max_entries => 1024, # 最大エントリ数
     map_name => "kprobe_map",
+    map_flags => combine_flags(BPF_F_NO_PREALLOC, BPF_F_NUMA_NODE),
 );
 my $pin_path = "/sys/fs/bpf/kprobe_map";
 
 ebpf::map::unpin_bpf_map($pin_path);
 
 my $map_instance = ebpf::map->create(\%map_attr);
-my $fd = $map_instance->{fd};
-ok($fd > 0, "Created map fd is $fd");
+my $map_fd = $map_instance->{map_fd};
+ok($map_fd > 0, "Created map fd is $map_fd");
 
-my $res = ebpf::map::pin_bpf_map($fd, $pin_path);
+ok(
+    $map_instance->{map_flags} == combine_flags(BPF_F_NO_PREALLOC, BPF_F_NUMA_NODE), 
+    "Map flags are correct",
+);
+
+my $res = ebpf::map::pin_bpf_map($map_fd, $pin_path);
 is($res, 0, "Pinned map to $pin_path: $res");
 
 $res = ebpf::map::unpin_bpf_map($pin_path);

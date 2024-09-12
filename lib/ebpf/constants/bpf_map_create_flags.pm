@@ -28,12 +28,28 @@ my %constants = (
     'BPF_F_NO_USER_CONV'    => 1 << 18,
 );
 
-our @EXPORT_OK = keys %constants;
+
+our @EXPORT_OK = (keys %constants, 'combine_flags');
 our %EXPORT_TAGS = (all => \@EXPORT_OK);
 
-for my $name (@EXPORT_OK) {
+for my $name (keys %constants) {
     no strict 'refs';
     *{$name} = sub () { $constants{$name} };
 }
+
+sub combine_flags {
+    my $combined = 0;
+    for my $flag (@_) {
+        if (ref $flag eq 'ARRAY') {
+            $combined |= combine_flags(@$flag);
+        } elsif (ref $flag eq 'HASH') {
+            $combined |= combine_flags(values %$flag);
+        } else {
+            $combined |= $flag;
+        }
+    }
+    return $combined;
+}
+
 
 1;

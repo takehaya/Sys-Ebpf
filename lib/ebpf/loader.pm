@@ -283,7 +283,7 @@ sub load_bpf {
     for my $map (@$maps) {
         my $map_name = $map->{map_name};
         my $map_instance = ebpf::map->create($map);
-        my $map_fd = $map_instance->{fd};
+        my $map_fd = $map_instance->{map_fd};
         if ($map_fd < 0) {
             die "Failed to load BPF map: $map_name (FD: $map_fd})\n";
         }
