@@ -21,7 +21,6 @@ my $map = ebpf::map->new(
     ],
 );
 
-# _match_uint_or_uint_array のテスト
 subtest '_match_uint_or_uint_array tests' => sub {
     my @test_cases = (
         { type => 'uint8', bitsize=>8, array_size=>undef },
@@ -45,7 +44,6 @@ subtest '_match_uint_or_uint_array tests' => sub {
     }
 };
 
-# _pack_value と _unpack_value のテスト
 subtest '_pack_value and _unpack_value tests' => sub {
     my @test_cases = (
         { type => 'uint8[4]', value => [1, 2, 3, 4], expected => pack('C4', 1, 2, 3, 4) },
@@ -63,7 +61,6 @@ subtest '_pack_value and _unpack_value tests' => sub {
     }
 };
 
-# _serialize と _deserialize のテスト
 subtest '_serialize and _deserialize tests' => sub {
     my $test_data = {
         uint8_id => [1, 2, 3, 4],
