@@ -2,7 +2,7 @@ package ebpf::map;
 
 use strict;
 use warnings;
-use POSIX qw(close);
+use POSIX;
 our $VERSION = $ebpf::VERSION;
 
 use ebpf::constants::bpf_cmd qw(
@@ -247,7 +247,6 @@ sub _serialize {
         my ($name, $type) = @$field;
         my $value = $data->{$name};
         my $packed_value = _pack_value($type, $value);
-        print "Packed $name: ", unpack("H*", $packed_value), "\n";
         push @packed, $packed_value;
     }
     return join('', @packed);

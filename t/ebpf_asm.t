@@ -75,6 +75,7 @@ subtest 'Test ebpf::asm macros load' => sub {
 
     # lddw r1, 0x1122334455667788
     # This means: Load 64-bit immediate value into r1
+    # todo: not portable across 32-bit and 64-bit systems(fixme use bigint)
     my ($high, $low) = ebpf::asm::BPF_LD_IMM64(1, 0x1122334455667788);
     is($high->get_code, ebpf::asm::BPF_LD | ebpf::asm::BPF_DW | ebpf::asm::BPF_IMM, 'LD_IMM64 high code is correct');
     is($high->get_dst_reg, 1, 'LD_IMM64 high dst_reg is correct');

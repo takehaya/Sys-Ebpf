@@ -39,4 +39,12 @@ is($res, 0, "Pinned map to $pin_path: $res");
 $res = ebpf::map::unpin_bpf_map($pin_path);
 is($res, 0, "Unpinned map from $pin_path: $res");
 
+
+END {
+   if ($map_instance) {
+       $map_instance->close();
+       undef $map_instance;
+       sleep 0.5;
+   }
+}
 done_testing();

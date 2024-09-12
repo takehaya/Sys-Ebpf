@@ -106,7 +106,14 @@ sub new {
         off      => $args{off} || 0,
         imm      => $args{imm} || 0,
     };
-    
+
+    # bitsize bindings
+    $self->{code} &= 0xFF;
+    $self->{dst_reg} &= 0x0F;
+    $self->{src_reg} &= 0x0F;
+    $self->{off} &= 0xFFFF;
+    $self->{imm} &= 0xFFFFFFFF;
+
     bless $self, $class;
     return $self;
 }
