@@ -2,6 +2,7 @@ package ebpf::map;
 
 use strict;
 use warnings;
+use POSIX qw(close);
 our $VERSION = $ebpf::VERSION;
 
 use ebpf::constants::bpf_cmd qw(
@@ -32,6 +33,20 @@ sub new {
     };
     bless $self, $class;
     return $self;
+}
+
+sub close {
+    my ($self) = @_;
+    if (defined $self->{map_fd} && $self->{map_fd} > 0) {
+        my $res = POSIX::close($self->{map_fd});
+        if ($res == -1) {
+            warn "Failed to close BPF map (fd: $self->{map_fd}): $!\n";
+            return 0;
+        }
+        $self->{map_fd} = undef;
+        return 1;
+    }
+    return 1;
 }
 
 sub create {
@@ -109,14 +124,11 @@ sub syscall_bpf_map_elem {
         $map_fd,                        # union bpf_attr::map_fd(32bit)
         0,                              # padding (32bit)
         unpack("Q", pack("P", $key)),   # union bpf_attr::key(64bit)
-        unpack("Q", pack("P", $value)), # union bpf_attr::value(64bit)
+        defined($value) ? unpack("Q", pack("P", $value)) : 0, # union bpf_attr::value(64bit), 0 if undef, delete operation case
         $flags,                         # union bpf_attr::flags(64bit)
-
     );
-    print "cmd: $cmd\n";
-    print unpack("H*", $attr), "\n";
-    print unpack("H*", $key), "\n";
-    return syscall(ebpf::syscall::SYS_bpf(), $cmd, $attr, length($attr));
+    my $result = syscall(ebpf::syscall::SYS_bpf(), $cmd, $attr, length($attr));
+    return $result;
 }
 
 
@@ -128,7 +140,6 @@ sub raw_lookup {
     if ($res < 0) {
         my $errno = $!;
         warn "syscall_bpf_map_elem failed with errno $errno: $!";
-        die "Failed to lookup BPF map: $errno\n";
     }
 
     return $res == 0 ? $value : undef;
@@ -140,7 +151,7 @@ sub raw_update {
     my $res = syscall_bpf_map_elem(BPF_MAP_UPDATE_ELEM(), $self->{map_fd}, $key, $value, $flags);
     if ($res < 0) {
         my $errno = $!;
-        die "Failed to update BPF map: $errno\n";
+        warn "Failed to update BPF map: $errno\n";
     }
     return $res;
 }
@@ -148,10 +159,10 @@ sub raw_update {
 sub raw_delete {
     my ($self, $key, $flags) = @_;
     $flags //= BPF_ANY();
-    my $res = syscall_bpf_map_elem(BPF_MAP_DELETE_ELEM(), $self->{map_fd}, $key, 0, $flags);
+    my $res = syscall_bpf_map_elem(BPF_MAP_DELETE_ELEM(), $self->{map_fd}, $key, undef, $flags);
     if ($res < 0) {
         my $errno = $!;
-        die "Failed to delete BPF map entry with key ", unpack("H*", $key), ": $errno\n";
+        warn "Failed to delete BPF map entry with key ", unpack("H*", $key), ": $errno ($!)\n";
     }
     return $res;
 }
@@ -184,8 +195,9 @@ sub lookup {
     }
     my $packed_key = $self->_serialize($key, $self->{key_schema});
     my $packed_value = $self->raw_lookup($packed_key);
-    return undef unless defined $packed_value;
-    # return $self->_deserialize($packed_value, $self->{value_schema});
+    if (!defined $packed_value) {
+        return undef;
+    }
     if ($self->{value_schema}) {
         return $self->_deserialize($packed_value, $self->{value_schema});
     }
@@ -199,12 +211,6 @@ sub delete {
         die "Key and value schema must be defined to use update method\n";
     }
     my $packed_key = $self->_serialize($key, $self->{key_schema});
-    print "Serialized key size: ", length($packed_key), " (Expected: ", $self->{key_size}, ")\n";
-    
-    if (length($packed_key) != $self->{key_size}) {
-        die "Key size mismatch. Expected $self->{key_size}, got " . length($packed_key) . "\n";
-    }
-
     return $self->raw_delete($packed_key, $flags);
 }
 
