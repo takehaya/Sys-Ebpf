@@ -1,4 +1,4 @@
-package sys::ebpf::constants::bpf_attach_type;
+package Sys::Ebpf::Constants::BpfAttachType;
 
 use strict;
 use warnings;
@@ -6,9 +6,6 @@ use utf8;
 
 use Exporter 'import';
 
-our $VERSION = $sys::ebpf::VERSION;
-
-# 定数を配列で定義
 my @constants = (
     'BPF_CGROUP_INET_INGRESS',            0,
     'BPF_CGROUP_INET_EGRESS',             1,
@@ -69,7 +66,6 @@ my @constants = (
     '__MAX_BPF_ATTACH_TYPE',              56,
 );
 
-# 定数を定義し、エクスポート用配列に追加
 our @EXPORT_OK   = keys %constants;
 our %EXPORT_TAGS = ( all => \@EXPORT_OK );
 

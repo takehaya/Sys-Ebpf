@@ -1,13 +1,12 @@
-package sys::ebpf::map;
+package Sys::Ebpf::Map;
 
 use strict;
 use warnings;
 use utf8;
 
 use POSIX qw( unlink );
-our $VERSION = $sys::ebpf::VERSION;
 
-use sys::ebpf::constants::bpf_cmd qw(
+use Sys::Ebpf::Constants::BpfCmd qw(
     BPF_MAP_CREATE
     BPF_MAP_DELETE_ELEM
     BPF_MAP_GET_NEXT_KEY
@@ -15,10 +14,10 @@ use sys::ebpf::constants::bpf_cmd qw(
     BPF_MAP_UPDATE_ELEM
     BPF_OBJ_PIN
 );
-use sys::ebpf::constants::bpf_map_type         qw(:all);
-use sys::ebpf::constants::bpf_map_update_flags qw(:all);
-use sys::ebpf::constants::bpf_map_create_flags qw(:all);
-use sys::ebpf::syscall;
+use Sys::Ebpf::Constants::BpfMapType        qw(:all);
+use Sys::Ebpf::Constants::BpfMapUpdateFlags qw(:all);
+use Sys::Ebpf::Constants::BpfMapCreateFlags qw(:all);
+use Sys::Ebpf::Syscall;
 
 sub new {
     my ( $class, %args ) = @_;
@@ -92,7 +91,7 @@ sub create {
         $attrs->{btf_vmlinux_value_type_id}
     );
 
-    my $map_fd = syscall( sys::ebpf::syscall::SYS_bpf(),
+    my $map_fd = syscall( Sys::Ebpf::Syscall::SYS_bpf(),
         BPF_MAP_CREATE(), $attr, length($attr) );
     if ( $map_fd < 0 ) {
         my $errno = $!;
@@ -127,7 +126,7 @@ sub syscall_bpf_map_elem {
         $flags,    # union bpf_attr::flags(64bit)
     );
     my $result
-        = syscall( sys::ebpf::syscall::SYS_bpf(), $cmd, $attr,
+        = syscall( Sys::Ebpf::Syscall::SYS_bpf(), $cmd, $attr,
         length($attr) );
     if ( $result < 0 ) {
         my $errno = $!;
@@ -371,7 +370,7 @@ sub pin_bpf_map {
         0    # file_flags
     );
 
-    my $res = syscall( sys::ebpf::syscall::SYS_bpf(),
+    my $res = syscall( Sys::Ebpf::Syscall::SYS_bpf(),
         BPF_OBJ_PIN, $attr, length($attr) );
 
     if ( $res < 0 ) {

@@ -6,11 +6,10 @@ use Test::More import => [qw( done_testing is ok plan )];
 
 # Load the module you're testing
 use lib '../lib';
-use sys::ebpf::asm;
-use sys::ebpf::map;
+use Sys::Ebpf::Map;
 
-use sys::ebpf::constants::bpf_map_type qw( BPF_MAP_TYPE_HASH );
-use sys::ebpf::constants::bpf_map_create_flags
+use Sys::Ebpf::Constants::BpfMapType qw( BPF_MAP_TYPE_HASH );
+use Sys::Ebpf::Constants::BpfMapCreateFlags
     qw(BPF_F_NO_PREALLOC BPF_F_NUMA_NODE combine_flags);
 
 plan skip_all => "This test must be run as root" if $> != 0;
@@ -25,9 +24,9 @@ my %map_attr = (
 );
 my $pin_path = "/sys/fs/bpf/kprobe_map";
 
-sys::ebpf::map::unpin_bpf_map($pin_path);
+Sys::Ebpf::Map::unpin_bpf_map($pin_path);
 
-my $map_instance = sys::ebpf::map->create( \%map_attr );
+my $map_instance = Sys::Ebpf::Map->create( \%map_attr );
 my $map_fd       = $map_instance->{map_fd};
 ok( $map_fd > 0, "Created map fd is $map_fd" );
 
@@ -36,10 +35,10 @@ ok( $map_instance->{map_flags}
     "Map flags are correct",
 );
 
-my $res = sys::ebpf::map::pin_bpf_map( $map_fd, $pin_path );
+my $res = Sys::Ebpf::Map::pin_bpf_map( $map_fd, $pin_path );
 is( $res, 0, "Pinned map to $pin_path: $res" );
 
-$res = sys::ebpf::map::unpin_bpf_map($pin_path);
+$res = Sys::Ebpf::Map::unpin_bpf_map($pin_path);
 is( $res, 0, "Unpinned map from $pin_path: $res" );
 
 END {

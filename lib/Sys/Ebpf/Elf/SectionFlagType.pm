@@ -1,4 +1,4 @@
-package sys::ebpf::elf::section_flag_type;
+package Sys::Ebpf::Elf::SectionFlagType;
 
 use strict;
 use warnings;
@@ -6,7 +6,7 @@ use utf8;
 
 use Exporter 'import';
 
-our $VERSION = $sys::ebpf::VERSION;
+our $VERSION = $Sys::Ebpf::VERSION;
 
 my @constants = (
     'SHF_WRITE',      1 << 0,     'SHF_ALLOC',            1 << 1,

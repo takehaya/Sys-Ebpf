@@ -1,12 +1,10 @@
-package sys::ebpf::constants::bpf_map_create_flags;
+package Sys::Ebpf::Constants::BpfMapCreateFlags;
 
 use strict;
 use warnings;
 use utf8;
 
 use Exporter 'import';
-
-our $VERSION = $sys::ebpf::VERSION;
 
 my %constants = (
     'BPF_F_NO_PREALLOC'      => 1 << 0,

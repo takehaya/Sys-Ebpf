@@ -1,12 +1,10 @@
-package sys::ebpf::constants::bpf_map_type;
+package Sys::Ebpf::Constants::BpfMapType;
 
 use strict;
 use warnings;
 use utf8;
 
 use Exporter 'import';
-
-our $VERSION = $sys::ebpf::VERSION;
 
 my %constants = (
     'BPF_MAP_TYPE_UNSPEC',                           0,

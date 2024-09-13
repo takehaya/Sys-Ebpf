@@ -1,12 +1,10 @@
-package sys::ebpf::reader;
+package Sys::Ebpf::Reader;
 
 use strict;
 use warnings;
 use utf8;
 
-our $VERSION = $sys::ebpf::VERSION;
-
-use sys::ebpf::elf::parser ();
+use Sys::Ebpf::Elf::Parser ();
 
 # cf. https://www.ietf.org/archive/id/draft-thaler-bpf-elf-00.html
 sub new {
@@ -21,7 +19,7 @@ sub parse_ebpf {
     my ($self) = @_;
     my $data = read_file( $self->{file} );
     $self->{raw_elf_data} = $data;
-    my $elfloader = sys::ebpf::elf::parser->new($data);
+    my $elfloader = Sys::Ebpf::Elf::Parser->new($data);
     my $elf       = $elfloader->parse_elf();
 
     # BPF Type only validate

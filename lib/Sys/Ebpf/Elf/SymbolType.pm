@@ -1,12 +1,10 @@
-package sys::ebpf::elf::symbol_type;
+package Sys::Ebpf::Elf::SymbolType;
 
 use strict;
 use warnings;
 use utf8;
 
 use Exporter 'import';
-
-our $VERSION = $sys::ebpf::VERSION;
 
 # Symbol Types (lower 4 bits of st_info)
 my @constants = (

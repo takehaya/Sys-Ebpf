@@ -6,24 +6,24 @@ use Test::More import => [qw( done_testing ok plan )];
 
 # Load the module you're testing
 use lib '../lib';    # Adjust the path based on your module's location
-use sys::ebpf::asm;
-use sys::ebpf::loader;
+use Sys::Ebpf::Asm;
+use Sys::Ebpf::Loader;
 
-use sys::ebpf::constants::bpf_prog_type qw( BPF_PROG_TYPE_KPROBE );
+use Sys::Ebpf::Constants::BpfProgType qw( BPF_PROG_TYPE_KPROBE );
 
 plan skip_all => "This test must be run as root" if $> != 0;
 
-my $loader = sys::ebpf::loader->new("dummy.o");
+my $loader = Sys::Ebpf::Loader->new("dummy.o");
 
 my @program = (
-    sys::ebpf::asm::BPF_ALU64_IMM( sys::ebpf::asm::BPF_MOV, 6, 1 ),  # r6 = 1
-    sys::ebpf::asm::BPF_ALU64_REG( sys::ebpf::asm::BPF_MOV, 1, 6 ),  # r1 = r6
-    sys::ebpf::asm::BPF_ALU64_IMM( sys::ebpf::asm::BPF_ADD, 1, 5 ),  # r1 += 5
-    sys::ebpf::asm::BPF_ALU64_REG( sys::ebpf::asm::BPF_MOV, 0, 1 ),  # r0 = r1
-    sys::ebpf::asm::BPF_JMP_IMM( sys::ebpf::asm::BPF_EXIT, 0, 0, 0 ),   # exit
+    Sys::Ebpf::Asm::BPF_ALU64_IMM( Sys::Ebpf::Asm::BPF_MOV, 6, 1 ),  # r6 = 1
+    Sys::Ebpf::Asm::BPF_ALU64_REG( Sys::Ebpf::Asm::BPF_MOV, 1, 6 ),  # r1 = r6
+    Sys::Ebpf::Asm::BPF_ALU64_IMM( Sys::Ebpf::Asm::BPF_ADD, 1, 5 ),  # r1 += 5
+    Sys::Ebpf::Asm::BPF_ALU64_REG( Sys::Ebpf::Asm::BPF_MOV, 0, 1 ),  # r0 = r1
+    Sys::Ebpf::Asm::BPF_JMP_IMM( Sys::Ebpf::Asm::BPF_EXIT, 0, 0, 0 ),   # exit
 );
 
-my $serialized_program = sys::ebpf::asm::serialize_sequence( \@program );
+my $serialized_program = Sys::Ebpf::Asm::serialize_sequence( \@program );
 
 my $prog_fd = $loader->load_bpf_program(
     {   prog_type => BPF_PROG_TYPE_KPROBE,

@@ -6,11 +6,10 @@ use Test::More import => [qw( done_testing is_deeply ok plan subtest )];
 use Time::HiRes qw( usleep );
 
 use lib '../lib';
-use sys::ebpf::map;
-use sys::ebpf::constants::bpf_map_type         qw(BPF_MAP_TYPE_HASH);
-use sys::ebpf::constants::bpf_map_create_flags qw(BPF_F_NO_PREALLOC);
-use sys::ebpf::constants::bpf_map_update_flags
-    qw(BPF_ANY BPF_NOEXIST BPF_EXIST);
+use Sys::Ebpf::Map;
+use Sys::Ebpf::Constants::BpfMapType        qw(BPF_MAP_TYPE_HASH);
+use Sys::Ebpf::Constants::BpfMapCreateFlags qw(BPF_F_NO_PREALLOC);
+use Sys::Ebpf::Constants::BpfMapUpdateFlags qw(BPF_ANY BPF_NOEXIST BPF_EXIST);
 
 plan skip_all => "This test must be run as root" if $> != 0;
 
@@ -34,7 +33,7 @@ sub create_map {
         map_flags => BPF_F_NO_PREALLOC,
     );
 
-    my $map = sys::ebpf::map->create( \%map_attr );
+    my $map = Sys::Ebpf::Map->create( \%map_attr );
     usleep(10000);    # 10ms wait after creation
     return $map;
 }

@@ -1,23 +1,21 @@
-package sys::ebpf::loader;
+package Sys::Ebpf::Loader;
 
 use strict;
 use warnings;
 use utf8;
 
-use sys::ebpf::asm;
-use sys::ebpf::reader ();
-use sys::ebpf::map;
-our $VERSION = $sys::ebpf::VERSION;
+use Sys::Ebpf::Asm;
+use Sys::Ebpf::Reader ();
+use Sys::Ebpf::Map;
 
 use Data::Dumper ();
 
-use sys::ebpf::elf::section_type        qw( SHT_PROGBITS );
-use sys::ebpf::constants::bpf_cmd       qw( BPF_PROG_LOAD );
-use sys::ebpf::constants::bpf_prog_type qw( BPF_PROG_TYPE_KPROBE );
-use sys::ebpf::elf::section_type        qw( SHT_PROGBITS );
-use sys::ebpf::elf::symbol_type         qw(STT_OBJECT);
-use Errno                               qw( EACCES EPERM );
-use sys::ebpf::syscall;
+use Sys::Ebpf::Elf::SectionType       qw( SHT_PROGBITS );
+use Sys::Ebpf::Constants::BpfCmd      qw( BPF_PROG_LOAD );
+use Sys::Ebpf::Constants::BpfProgType qw( BPF_PROG_TYPE_KPROBE );
+use Sys::Ebpf::Elf::SymbolType        qw(STT_OBJECT);
+use Errno                             qw( EACCES EPERM );
+use Sys::Ebpf::Syscall;
 
 sub new {
     my ( $class, $file ) = @_;
@@ -30,7 +28,7 @@ sub load_elf {
     my ($self) = @_;
     my $file = $self->{file};
 
-    my $reader = sys::ebpf::reader->new($file);
+    my $reader = Sys::Ebpf::Reader->new($file);
     $self->{reader} = $reader;
 
     my $bpfelf = $reader->parse_ebpf();
@@ -123,7 +121,7 @@ sub extract_bpf_map_attributes {
 sub find_section {
     my ( $self, $section_name ) = @_;
     my $bpfelf = $self->{bpfelf};
-    return sys::ebpf::elf::parser::find_section( $bpfelf->{sections},
+    return Sys::Ebpf::Elf::Parser::find_section( $bpfelf->{sections},
         $section_name );
 }
 
@@ -199,7 +197,7 @@ sub load_bpf_program {
     );
 
     # syscallの実行
-    my $fd = syscall( sys::ebpf::syscall::SYS_bpf(),
+    my $fd = syscall( Sys::Ebpf::Syscall::SYS_bpf(),
         BPF_PROG_LOAD, $attr, length($attr) );
 
     if ( $fd < 0 ) {
@@ -271,7 +269,7 @@ sub apply_map_relocations {
                 . "\n";    # デバッグ出力
 
             my ( $high, $low )
-                = sys::ebpf::asm::deserialize_128bit_instruction($bpf_insn);
+                = Sys::Ebpf::Asm::deserialize_128bit_instruction($bpf_insn);
 
             # 即値 (64ビット) にマップFDを設定
             $high->set_imm($map_fd);
@@ -282,7 +280,7 @@ sub apply_map_relocations {
 
             # 修正後の命令をパックして、元の場所に書き戻す
             my $new_bpf_insn
-                = sys::ebpf::asm::serialize_128bit_instruction( $high, $low );
+                = Sys::Ebpf::Asm::serialize_128bit_instruction( $high, $low );
             substr( $self->{reader}->{raw_elf_data},
                 $r_offset, 16, $new_bpf_insn );
 
@@ -315,7 +313,7 @@ sub load_bpf {
     # map_attr_refの各キー（マップ名）に対して処理を実行
     for my $map (@$maps) {
         my $map_name     = $map->{map_name};
-        my $map_instance = sys::ebpf::map->create($map);
+        my $map_instance = Sys::Ebpf::Map->create($map);
         my $map_fd       = $map_instance->{map_fd};
         if ( $map_fd < 0 ) {
             die "Failed to load BPF map: $map_name (FD: $map_fd})\n";

@@ -1,10 +1,10 @@
-# sys::ebpf
+# Sys::Ebpf
 
 ebpf - It's pure-perl ebpf loader
 
 # SYNOPSIS
 
-    use sys::ebpf;
+    use Sys::Ebpf;
 
 # DESCRIPTION
 

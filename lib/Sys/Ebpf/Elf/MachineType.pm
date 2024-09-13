@@ -1,12 +1,10 @@
-package sys::ebpf::elf::machine_type;
+package Sys::Ebpf::Elf::MachineType;
 
 use strict;
 use warnings;
 use utf8;
 
 use Exporter 'import';
-
-our $VERSION = $sys::ebpf::VERSION;
 
 my @constants = (
     'EM_NONE',           0,      'EM_M32',          1,

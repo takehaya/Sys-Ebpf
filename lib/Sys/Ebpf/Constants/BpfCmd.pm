@@ -1,12 +1,10 @@
-package sys::ebpf::constants::bpf_cmd;
+package Sys::Ebpf::Constants::BpfCmd;
 
 use strict;
 use warnings;
 use utf8;
 
 use Exporter 'import';
-
-our $VERSION = $sys::ebpf::VERSION;
 
 my %constants = (
     'BPF_MAP_CREATE',                  0,

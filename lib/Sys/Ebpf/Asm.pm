@@ -1,10 +1,8 @@
-package sys::ebpf::asm;
+package Sys::Ebpf::Asm;
 
 use strict;
 use warnings;
 use utf8;
-
-our $VERSION = $sys::ebpf::VERSION;
 
 # cf. https://www.kernel.org/doc/html/v6.11-rc7/bpf/standardization/instruction-set.html
 # cf. https://github.com/iovisor/bpf-docs/blob/master/eBPF.md
@@ -177,8 +175,8 @@ sub get_imm     { $_[0]->{imm} }
 sub deserialize_128bit_instruction {
     my ($binary) = @_;
 
-    my $high = sys::ebpf::asm->deserialize( substr( $binary, 0, 8 ) );
-    my $low  = sys::ebpf::asm->deserialize( substr( $binary, 8, 8 ) );
+    my $high = Sys::Ebpf::asm->deserialize( substr( $binary, 0, 8 ) );
+    my $low  = Sys::Ebpf::asm->deserialize( substr( $binary, 8, 8 ) );
 
     return ( $high, $low );
 }
