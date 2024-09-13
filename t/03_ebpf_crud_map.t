@@ -4,11 +4,12 @@ use utf8;
 
 use Test::More import => [qw( done_testing is_deeply ok plan subtest )];
 use Time::HiRes qw( usleep );
+use lib 'lib';
 
 use Sys::Ebpf::Map;
-use Sys::Ebpf::Constants::BpfMapType        qw(BPF_MAP_TYPE_HASH);
-use Sys::Ebpf::Constants::BpfMapCreateFlags qw(BPF_F_NO_PREALLOC);
-use Sys::Ebpf::Constants::BpfMapUpdateFlags qw(BPF_ANY BPF_NOEXIST BPF_EXIST);
+use Sys::Ebpf::Constants::BpfMapType        qw( BPF_MAP_TYPE_HASH );
+use Sys::Ebpf::Constants::BpfMapCreateFlags qw( BPF_F_NO_PREALLOC );
+use Sys::Ebpf::Constants::BpfMapUpdateFlags qw( BPF_ANY );
 
 plan skip_all => "This test must be run as root" if $> != 0;
 

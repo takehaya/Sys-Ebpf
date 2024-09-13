@@ -3,13 +3,17 @@ use warnings;
 use utf8;
 
 use Test::More import => [qw( done_testing is ok plan )];
+use lib 'lib';
 
 # Load the module you're testing
 use Sys::Ebpf::Map;
 
-use Sys::Ebpf::Constants::BpfMapType qw( BPF_MAP_TYPE_HASH );
-use Sys::Ebpf::Constants::BpfMapCreateFlags
-    qw(BPF_F_NO_PREALLOC BPF_F_NUMA_NODE combine_flags);
+use Sys::Ebpf::Constants::BpfMapType        qw( BPF_MAP_TYPE_HASH );
+use Sys::Ebpf::Constants::BpfMapCreateFlags qw(
+    BPF_F_NO_PREALLOC
+    BPF_F_NUMA_NODE
+    combine_flags
+);
 
 plan skip_all => "This test must be run as root" if $> != 0;
 

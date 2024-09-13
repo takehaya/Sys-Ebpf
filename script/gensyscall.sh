@@ -1,6 +1,13 @@
 #!/bin/bash
+ORIG_PWD=$(pwd)
+echo "Original PWD: $ORIG_PWD"
 
-PWD=$(pwd)
 pushd /usr/include/x86_64-linux-gnu/sys/
-h2ph -d "$PWD/lib/Ebpf/Syscall" -a -l syscall.h
+echo "Current directory for syscall.h: $(pwd)"
+
+echo "Generate syscall.ph file"
+echo "h2ph -d \"$ORIG_PWD/lib/Sys/Ebpf/Syscall\" -a -l syscall.h"
+
+h2ph -d "$ORIG_PWD/lib/Sys/Ebpf/Syscall" -a -l syscall.h
+
 popd

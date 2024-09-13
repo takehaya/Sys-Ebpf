@@ -23,3 +23,8 @@ pre-commit install
 ```shell
 pre-commit run -a
 ```
+
+## package update
+```shell
+sudo PERL5LIB=$PERL5LIB $(which minil) test
+```

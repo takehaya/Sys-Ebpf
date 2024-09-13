@@ -4,6 +4,7 @@ use utf8;
 
 use Test::More import => [qw( done_testing is is_deeply subtest )];
 use Data::Dumper ();
+use lib 'lib';
 
 use Sys::Ebpf::Map;
 

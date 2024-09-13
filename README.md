@@ -1,18 +1,18 @@
-[![Actions Status](https://github.com/takehaya/Sys-Ebpf/actions/workflows/test.yml/badge.svg)](https://github.com/takehaya/Sys-Ebpf/actions)
+[![Actions Status](https://github.com/takehaya/perl-ebpf/actions/workflows/test.yml/badge.svg)](https://github.com/takehaya/perl-ebpf/actions)
 # NAME
 
-Sys::Ebpf - Pure-Perl interface for eBPF (extended Berkeley Packet Filter)
+ebpf - Pure-Perl interface for eBPF (extended Berkeley Packet Filter)
 
 # SYNOPSIS
 
-    use Sys::Ebpf;
+    use Sys::Ebpf::;
 
     # Create a new eBPF loader
     my $loader = Sys::Ebpf::loader->new();
 
     # Load a BPF map
     my $map_fd = $loader->load_bpf_map({
-        map_type => Sys::Ebpf::Constants::BpfMapType::BPF_MAP_TYPE_ARRAY,
+        map_type => Sys::Ebpf::Constants::bpf_map_type::BPF_MAP_TYPE_ARRAY,
         key_size => 4,
         value_size => 8,
         max_entries => 1,
@@ -27,16 +27,16 @@ Sys::Ebpf - Pure-Perl interface for eBPF (extended Berkeley Packet Filter)
 
 # DESCRIPTION
 
-The `Sys::Ebpf` module provides a Perl interface for working with eBPF (extended Berkeley Packet Filter)
+The `ebpf` module provides a Perl interface for working with eBPF (extended Berkeley Packet Filter)
 on Linux systems. It allows you to load eBPF programs, create and manipulate BPF maps, and interact
 with the eBPF subsystem directly from Perl.
 
 This module includes several submodules:
 
-- `Sys::Ebpf::Loader` - For loading eBPF programs and maps
-- `Sys::Ebpf::Asm` - eBPF assembly helpers
-- `Sys::Ebpf::Reader` - For reading ELF files
-- `Sys::Ebpf::Elf::Parser` - For parsing ELF files
+- `Sys::Ebpf::loader` - For loading eBPF programs and maps
+- `Sys::Ebpf::asm` - eBPF assembly helpers
+- `Sys::Ebpf::reader` - For reading ELF files
+- `Sys::Ebpf::elf::parser` - For parsing ELF files
 
 # FUNCTIONS
 
@@ -45,10 +45,10 @@ Refer to the documentation of individual submodules for specific functions and u
 
 # SEE ALSO
 
-- [Sys::Ebpf::Loader](https://metacpan.org/pod/Sys%3A%3AEbpf%3A%3Aloader)
-- [Sys::Ebpf::Asm](https://metacpan.org/pod/Sys%3A%3AEbpf%3A%3Aasm)
-- `Sys::Ebpf::Reader` - For reading ELF files
-- `Sys::Ebpf::Elf::Parser` - For parsing ELF files
+- [Sys::Ebpf::loader](https://metacpan.org/pod/Sys%3A%3AEbpf%3A%3Aloader)
+- [Sys::Ebpf::asm](https://metacpan.org/pod/Sys%3A%3AEbpf%3A%3Aasm)
+- `Sys::Ebpf::reader` - For reading ELF files
+- `Sys::Ebpf::elf::parser` - For parsing ELF files
 
 # AUTHOR
 

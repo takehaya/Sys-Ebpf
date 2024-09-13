@@ -3,8 +3,9 @@ use warnings;
 use utf8;
 
 use Test::More import => [qw( done_testing ok plan )];
+use lib 'lib';
 
-use Sys::Ebpf::Asm;
+use Sys::Ebpf::Asm ();
 use Sys::Ebpf::Loader;
 
 use Sys::Ebpf::Constants::BpfProgType qw( BPF_PROG_TYPE_KPROBE );
