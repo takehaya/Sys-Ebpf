@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use utf8;
 
-use Sys::Ebpf::Asm;
+use Sys::Ebpf::Asm    ();
 use Sys::Ebpf::Reader ();
 use Sys::Ebpf::Map;
 
@@ -13,7 +13,7 @@ use Data::Dumper ();
 use Sys::Ebpf::Elf::SectionType       qw( SHT_PROGBITS );
 use Sys::Ebpf::Constants::BpfCmd      qw( BPF_PROG_LOAD );
 use Sys::Ebpf::Constants::BpfProgType qw( BPF_PROG_TYPE_KPROBE );
-use Sys::Ebpf::Elf::SymbolType        qw(STT_OBJECT);
+use Sys::Ebpf::Elf::SymbolType        qw( STT_OBJECT );
 use Errno                             qw( EACCES EPERM );
 use Sys::Ebpf::Syscall;
 

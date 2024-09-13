@@ -47,6 +47,7 @@
       },
       "test" : {
          "requires" : {
+            "Minilla" : "0",
             "Test::More" : "0.98"
          }
       }

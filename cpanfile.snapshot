@@ -1,0 +1,466 @@
+# carton snapshot format: version 1.0
+DISTRIBUTIONS
+  App-cpanminus-1.7047
+    pathname: M/MI/MIYAGAWA/App-cpanminus-1.7047.tar.gz
+    provides:
+      App::cpanminus 1.7047
+    requirements:
+      ExtUtils::MakeMaker 0
+      perl 5.008001
+  Class-Method-Modifiers-2.15
+    pathname: E/ET/ETHER/Class-Method-Modifiers-2.15.tar.gz
+    provides:
+      Class::Method::Modifiers 2.15
+    requirements:
+      B 0
+      Carp 0
+      Exporter 0
+      ExtUtils::MakeMaker 0
+      base 0
+      perl 5.006
+      strict 0
+      warnings 0
+  Data-Section-Simple-0.07
+    pathname: M/MI/MIYAGAWA/Data-Section-Simple-0.07.tar.gz
+    provides:
+      Data::Section::Simple 0.07
+    requirements:
+      ExtUtils::MakeMaker 6.30
+  ExtUtils-Config-0.010
+    pathname: L/LE/LEONT/ExtUtils-Config-0.010.tar.gz
+    provides:
+      ExtUtils::Config 0.010
+      ExtUtils::Config::MakeMaker 0.010
+    requirements:
+      Data::Dumper 0
+      ExtUtils::MakeMaker 0
+      ExtUtils::MakeMaker::Config 0
+      perl 5.006
+      strict 0
+      warnings 0
+  ExtUtils-Helpers-0.028
+    pathname: L/LE/LEONT/ExtUtils-Helpers-0.028.tar.gz
+    provides:
+      ExtUtils::Helpers 0.028
+      ExtUtils::Helpers::Unix 0.028
+      ExtUtils::Helpers::VMS 0.028
+      ExtUtils::Helpers::Windows 0.028
+    requirements:
+      Carp 0
+      Exporter 5.57
+      ExtUtils::MakeMaker 0
+      File::Basename 0
+      File::Copy 0
+      File::Spec::Functions 0
+      Text::ParseWords 3.24
+      strict 0
+      warnings 0
+  ExtUtils-InstallPaths-0.014
+    pathname: L/LE/LEONT/ExtUtils-InstallPaths-0.014.tar.gz
+    provides:
+      ExtUtils::InstallPaths 0.014
+    requirements:
+      Carp 0
+      ExtUtils::Config 0.009
+      ExtUtils::MakeMaker 0
+      File::Spec 0
+      perl 5.008
+      strict 0
+      warnings 0
+  File-Which-1.27
+    pathname: P/PL/PLICEASE/File-Which-1.27.tar.gz
+    provides:
+      File::Which 1.27
+    requirements:
+      ExtUtils::MakeMaker 0
+      base 0
+      perl 5.006
+  File-pushd-1.016
+    pathname: D/DA/DAGOLDEN/File-pushd-1.016.tar.gz
+    provides:
+      File::pushd 1.016
+    requirements:
+      Carp 0
+      Cwd 0
+      Exporter 0
+      ExtUtils::MakeMaker 6.17
+      File::Path 0
+      File::Spec 0
+      File::Temp 0
+      overload 0
+      perl 5.006
+      strict 0
+      warnings 0
+  MIME-Base32-1.303
+    pathname: R/RE/REHSACK/MIME-Base32-1.303.tar.gz
+    provides:
+      MIME::Base32 1.303
+    requirements:
+      Exporter 0
+      ExtUtils::MakeMaker 0
+      perl 5.008001
+      utf8 0
+  Minilla-v3.1.25
+    pathname: S/SK/SKAJI/Minilla-v3.1.25.tar.gz
+    provides:
+      Minilla v3.1.25
+      Minilla::CLI undef
+      Minilla::CLI::Build undef
+      Minilla::CLI::Clean undef
+      Minilla::CLI::Dist undef
+      Minilla::CLI::Help undef
+      Minilla::CLI::Install undef
+      Minilla::CLI::Migrate undef
+      Minilla::CLI::New undef
+      Minilla::CLI::Release undef
+      Minilla::CLI::Run undef
+      Minilla::CLI::Test undef
+      Minilla::Error::CommandExit undef
+      Minilla::Errors undef
+      Minilla::FileGatherer undef
+      Minilla::Git undef
+      Minilla::Gitignore undef
+      Minilla::License::Perl_5 undef
+      Minilla::License::Unknown undef
+      Minilla::Logger undef
+      Minilla::Metadata undef
+      Minilla::Migrate undef
+      Minilla::ModuleMaker::ExtUtilsMakeMaker undef
+      Minilla::ModuleMaker::ModuleBuild undef
+      Minilla::ModuleMaker::ModuleBuildTiny undef
+      Minilla::Profile::Base undef
+      Minilla::Profile::Default undef
+      Minilla::Profile::ExtUtilsMakeMaker undef
+      Minilla::Profile::ModuleBuild undef
+      Minilla::Profile::ModuleBuildTiny undef
+      Minilla::Profile::XS undef
+      Minilla::Project undef
+      Minilla::Release::BumpVersion undef
+      Minilla::Release::CheckChanges undef
+      Minilla::Release::CheckOrigin undef
+      Minilla::Release::CheckReleaseBranch undef
+      Minilla::Release::CheckUntrackedFiles undef
+      Minilla::Release::Commit undef
+      Minilla::Release::DistTest undef
+      Minilla::Release::MakeDist undef
+      Minilla::Release::RegenerateFiles undef
+      Minilla::Release::RewriteChanges undef
+      Minilla::Release::RunHooks undef
+      Minilla::Release::Tag undef
+      Minilla::Release::UploadToCPAN undef
+      Minilla::ReleaseTest undef
+      Minilla::Unsupported undef
+      Minilla::Util undef
+      Minilla::WorkDir undef
+      Module::BumpVersion undef
+    requirements:
+      App::cpanminus 1.6902
+      Archive::Tar 1.60
+      CPAN::Meta 2.132830
+      Data::Section::Simple 0.04
+      ExtUtils::Manifest 1.54
+      File::Which 0
+      File::pushd 0
+      Getopt::Long 2.36
+      Module::Build::Tiny 0.035
+      Module::CPANfile 0.9025
+      Module::Metadata 1.000027
+      Module::Runtime 0
+      Moo 1.001
+      Pod::Markdown 1.322
+      TAP::Harness::Env 0
+      TOML 0.95
+      Term::ANSIColor 0
+      Text::MicroTemplate 0.20
+      Time::Piece 1.16
+      Try::Tiny 0
+      URI 0
+      parent 0
+      perl 5.010001
+      version 0
+  Module-Build-0.4234
+    pathname: L/LE/LEONT/Module-Build-0.4234.tar.gz
+    provides:
+      Module::Build 0.4234
+      Module::Build::Base 0.4234
+      Module::Build::Compat 0.4234
+      Module::Build::Config 0.4234
+      Module::Build::Cookbook 0.4234
+      Module::Build::Dumper 0.4234
+      Module::Build::Notes 0.4234
+      Module::Build::PPMMaker 0.4234
+      Module::Build::Platform::Default 0.4234
+      Module::Build::Platform::MacOS 0.4234
+      Module::Build::Platform::Unix 0.4234
+      Module::Build::Platform::VMS 0.4234
+      Module::Build::Platform::VOS 0.4234
+      Module::Build::Platform::Windows 0.4234
+      Module::Build::Platform::aix 0.4234
+      Module::Build::Platform::cygwin 0.4234
+      Module::Build::Platform::darwin 0.4234
+      Module::Build::Platform::os2 0.4234
+      Module::Build::PodParser 0.4234
+    requirements:
+      CPAN::Meta 2.142060
+      Cwd 0
+      Data::Dumper 0
+      ExtUtils::CBuilder 0.27
+      ExtUtils::Install 0
+      ExtUtils::Manifest 0
+      ExtUtils::Mkbootstrap 0
+      ExtUtils::ParseXS 2.21
+      File::Basename 0
+      File::Compare 0
+      File::Copy 0
+      File::Find 0
+      File::Path 0
+      File::Spec 0.82
+      Getopt::Long 0
+      Module::Metadata 1.000002
+      Perl::OSType 1
+      TAP::Harness 3.29
+      Text::Abbrev 0
+      Text::ParseWords 0
+      perl 5.006001
+      version 0.87
+  Module-Build-Tiny-0.051
+    pathname: L/LE/LEONT/Module-Build-Tiny-0.051.tar.gz
+    provides:
+      Module::Build::Tiny 0.051
+    requirements:
+      CPAN::Meta 0
+      DynaLoader 0
+      Exporter 5.57
+      ExtUtils::CBuilder 0
+      ExtUtils::Config 0.003
+      ExtUtils::Helpers 0.020
+      ExtUtils::Install 0
+      ExtUtils::InstallPaths 0.002
+      ExtUtils::ParseXS 0
+      File::Basename 0
+      File::Find 0
+      File::Path 0
+      File::Spec::Functions 0
+      Getopt::Long 2.36
+      JSON::PP 2
+      Pod::Man 0
+      TAP::Harness::Env 0
+      perl 5.006
+      strict 0
+      warnings 0
+  Module-CPANfile-1.1004
+    pathname: M/MI/MIYAGAWA/Module-CPANfile-1.1004.tar.gz
+    provides:
+      Module::CPANfile 1.1004
+      Module::CPANfile::Environment undef
+      Module::CPANfile::Prereq undef
+      Module::CPANfile::Prereqs undef
+      Module::CPANfile::Requirement undef
+    requirements:
+      CPAN::Meta 2.12091
+      CPAN::Meta::Prereqs 2.12091
+      ExtUtils::MakeMaker 0
+      parent 0
+  Module-Runtime-0.016
+    pathname: Z/ZE/ZEFRAM/Module-Runtime-0.016.tar.gz
+    provides:
+      Module::Runtime 0.016
+    requirements:
+      Module::Build 0
+      Test::More 0.41
+      perl 5.006
+      strict 0
+      warnings 0
+  Moo-2.005005
+    pathname: H/HA/HAARG/Moo-2.005005.tar.gz
+    provides:
+      Method::Generate::Accessor undef
+      Method::Generate::BuildAll undef
+      Method::Generate::Constructor undef
+      Method::Generate::DemolishAll undef
+      Moo 2.005005
+      Moo::HandleMoose undef
+      Moo::HandleMoose::FakeConstructor undef
+      Moo::HandleMoose::FakeMetaClass undef
+      Moo::HandleMoose::_TypeMap undef
+      Moo::Object undef
+      Moo::Role 2.005005
+      Moo::_Utils undef
+      Moo::sification undef
+      oo undef
+    requirements:
+      Carp 0
+      Class::Method::Modifiers 1.10
+      Exporter 0
+      ExtUtils::MakeMaker 0
+      Role::Tiny 2.002003
+      Scalar::Util 1.00
+      Sub::Defer 2.006006
+      Sub::Quote 2.006006
+      perl 5.006
+  Pod-Markdown-3.400
+    pathname: R/RW/RWSTAUNER/Pod-Markdown-3.400.tar.gz
+    provides:
+      Pod::Markdown 3.400
+      Pod::Perldoc::ToMarkdown 3.400
+    requirements:
+      Encode 0
+      ExtUtils::MakeMaker 0
+      Getopt::Long 0
+      Pod::Simple 3.27
+      Pod::Simple::Methody 0
+      Pod::Usage 0
+      URI::Escape 0
+      parent 0
+      perl 5.008
+      strict 0
+      warnings 0
+  Role-Tiny-2.002004
+    pathname: H/HA/HAARG/Role-Tiny-2.002004.tar.gz
+    provides:
+      Role::Tiny 2.002004
+      Role::Tiny::With 2.002004
+    requirements:
+      Exporter 5.57
+      perl 5.006
+  Sub-Quote-2.006008
+    pathname: H/HA/HAARG/Sub-Quote-2.006008.tar.gz
+    provides:
+      Sub::Defer 2.006008
+      Sub::Quote 2.006008
+    requirements:
+      ExtUtils::MakeMaker 0
+      Scalar::Util 0
+      perl 5.006
+  TOML-0.97
+    pathname: K/KA/KARUPA/TOML-0.97.tar.gz
+    provides:
+      TOML 0.97
+    requirements:
+      Exporter 5.57
+      Module::Build::Tiny 0.035
+      TOML::Parser 0.04
+      perl 5.008005
+  TOML-Parser-0.91
+    pathname: K/KA/KARUPA/TOML-Parser-0.91.tar.gz
+    provides:
+      TOML::Parser 0.91
+      TOML::Parser::Tokenizer undef
+      TOML::Parser::Tokenizer::Strict undef
+      TOML::Parser::Util undef
+    requirements:
+      Encode 0
+      Exporter 5.57
+      Module::Build::Tiny 0.035
+      Types::Serialiser 0
+      parent 0
+      perl 5.010000
+  Text-MicroTemplate-0.24
+    pathname: K/KA/KAZUHO/Text-MicroTemplate-0.24.tar.gz
+    provides:
+      Text::MicroTemplate 0.24
+      Text::MicroTemplate::EncodedString 0.24
+      Text::MicroTemplate::File undef
+    requirements:
+      ExtUtils::MakeMaker 6.59
+      File::Temp 0
+      Test::More 0
+      perl 5.008000
+  Try-Tiny-0.32
+    pathname: E/ET/ETHER/Try-Tiny-0.32.tar.gz
+    provides:
+      Try::Tiny 0.32
+    requirements:
+      Carp 0
+      Exporter 5.57
+      ExtUtils::MakeMaker 0
+      constant 0
+      perl 5.006
+      strict 0
+      warnings 0
+  Types-Serialiser-1.01
+    pathname: M/ML/MLEHMANN/Types-Serialiser-1.01.tar.gz
+    provides:
+      JSON::PP::Boolean 1.01
+      Types::Serialiser 1.01
+      Types::Serialiser::BooleanBase 1.01
+      Types::Serialiser::Error 1.01
+    requirements:
+      ExtUtils::MakeMaker 0
+      common::sense 0
+  URI-5.29
+    pathname: O/OA/OALDERS/URI-5.29.tar.gz
+    provides:
+      URI 5.29
+      URI::Escape 5.29
+      URI::Heuristic 5.29
+      URI::IRI 5.29
+      URI::QueryParam 5.29
+      URI::Split 5.29
+      URI::URL 5.29
+      URI::WithBase 5.29
+      URI::data 5.29
+      URI::file 5.29
+      URI::file::Base 5.29
+      URI::file::FAT 5.29
+      URI::file::Mac 5.29
+      URI::file::OS2 5.29
+      URI::file::QNX 5.29
+      URI::file::Unix 5.29
+      URI::file::Win32 5.29
+      URI::ftp 5.29
+      URI::geo 5.29
+      URI::gopher 5.29
+      URI::http 5.29
+      URI::https 5.29
+      URI::icap 5.29
+      URI::icaps 5.29
+      URI::ldap 5.29
+      URI::ldapi 5.29
+      URI::ldaps 5.29
+      URI::mailto 5.29
+      URI::mms 5.29
+      URI::news 5.29
+      URI::nntp 5.29
+      URI::nntps 5.29
+      URI::otpauth 5.29
+      URI::pop 5.29
+      URI::rlogin 5.29
+      URI::rsync 5.29
+      URI::rtsp 5.29
+      URI::rtspu 5.29
+      URI::sftp 5.29
+      URI::sip 5.29
+      URI::sips 5.29
+      URI::snews 5.29
+      URI::ssh 5.29
+      URI::telnet 5.29
+      URI::tn3270 5.29
+      URI::urn 5.29
+      URI::urn::isbn 5.29
+      URI::urn::oid 5.29
+    requirements:
+      Carp 0
+      Cwd 0
+      Data::Dumper 0
+      Encode 0
+      Exporter 5.57
+      ExtUtils::MakeMaker 0
+      MIME::Base32 0
+      MIME::Base64 2
+      Net::Domain 0
+      Scalar::Util 0
+      constant 0
+      integer 0
+      overload 0
+      parent 0
+      perl 5.008001
+      strict 0
+      utf8 0
+      warnings 0
+  common-sense-3.75
+    pathname: M/ML/MLEHMANN/common-sense-3.75.tar.gz
+    provides:
+      common::sense 3.75
+    requirements:
+      ExtUtils::MakeMaker 0
