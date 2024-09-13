@@ -5,7 +5,7 @@ use warnings;
 use utf8;
 use Exporter 'import';
 
-require 'Sys/Ebpf/Syscall/sys/syscall.ph';
+require 'Sys/Ebpf/Syscall/syscall.ph';
 
 our @EXPORT = grep {/^SYS_/} keys %main::;
 
