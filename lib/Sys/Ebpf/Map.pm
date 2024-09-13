@@ -14,9 +14,9 @@ use Sys::Ebpf::Constants::BpfCmd qw(
     BPF_MAP_UPDATE_ELEM
     BPF_OBJ_PIN
 );
-use Sys::Ebpf::Constants::BpfMapType        qw(:all);
-use Sys::Ebpf::Constants::BpfMapUpdateFlags qw(:all);
-use Sys::Ebpf::Constants::BpfMapCreateFlags qw(:all);
+use Sys::Ebpf::Constants::BpfMapType        qw( BPF_MAP_TYPE_UNSPEC );
+use Sys::Ebpf::Constants::BpfMapUpdateFlags qw( BPF_ANY );
+use Sys::Ebpf::Constants::BpfMapCreateFlags ();
 use Sys::Ebpf::Syscall;
 
 sub new {
@@ -203,6 +203,9 @@ sub update {
 
 sub lookup {
     my ( $self, $key ) = @_;
+    if ( !defined $key ) {
+        die "Key must be defined to use lookup method\n";
+    }
     if ( !defined $self->{key_schema} || !defined $self->{value_schema} ) {
         die "Key and value schema must be defined to use update method\n";
     }

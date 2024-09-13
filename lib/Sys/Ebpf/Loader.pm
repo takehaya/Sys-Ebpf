@@ -219,12 +219,12 @@ sub load_bpf_program {
 #   prob_section: プログラムセクション
 #   reloc_sections: リロケーションセクション
 #   elf: ELFデータ
-#   map_data: マップデータのリファレンス
+#   map_hash_ref: マップデータのリファレンス
 # r_offsetを使って、修正すべき命令（インストラクション）をkprobe/sys_execveセクション内から特定します。
 # r_infoからシンボルインデックスを取得し、そのシンボルのアドレスをシンボルテーブル（.symtab）から取得します。
 # 修正すべきインストラクションに、シンボルのアドレスを適用して、正しいマップへの参照に書き換えます。
 sub apply_map_relocations {
-    my ( $self, $prob_section, $reloc_sections, $elf, $map_data ) = @_;
+    my ( $self, $prob_section, $reloc_sections, $elf, $map_hash_ref ) = @_;
     my $symbols_section = $elf->{symbols};
     for my $reloc_section (@$reloc_sections) {
         my $r_info = $reloc_section->{r_info};
@@ -249,14 +249,13 @@ sub apply_map_relocations {
 
         # `$map_data` の中のタプルを確認して、期待してるマップ名が存在するかチェック(fdを取得)
         my $map_fd = undef;
-        for my $tuple (@$map_data) {
-            my ( $map_name, $map ) = @$tuple;
+        for my $map_name ( keys %$map_hash_ref ) {
+            my $map = $map_hash_ref->{$map_name};
             if ( $sym_name eq $map_name ) {
                 $map_fd = $map->{map_fd};
                 last;    # マップが見つかったらループを抜ける
             }
         }
-
         if ( defined $map_fd ) {
 
             # # 指定されたオフセット位置にある `lddw` 命令（16バイト）を取得
@@ -308,7 +307,7 @@ sub load_bpf {
     my $bpfelf = $self->{bpfelf};
     my $maps   = $self->extract_bpf_map_attributes('maps');
 
-    my @map_collection;
+    my %map_collection;
 
     # map_attr_refの各キー（マップ名）に対して処理を実行
     for my $map (@$maps) {
@@ -318,7 +317,7 @@ sub load_bpf {
         if ( $map_fd < 0 ) {
             die "Failed to load BPF map: $map_name (FD: $map_fd})\n";
         }
-        push @map_collection, [ $map_name, $map_instance ];
+        $map_collection{$map_name} = $map_instance;
     }
 
     # リロケーションを適用
@@ -328,14 +327,14 @@ sub load_bpf {
         = find_symbol_table_from_name( $bpfelf->{sections}, $section_name );
     if ( defined $reloc_section ) {
         $self->apply_map_relocations( $prob_section, $reloc_section, $bpfelf,
-            \@map_collection );
+            \%map_collection );
     }
 
     # todo: bpfprobが複数あるケースにも対応する
     # BPF プログラムをロード
     my $prog_fd = $self->load_bpf_program_from_elf($section_name);
 
-    return ( \@map_collection, $prog_fd );
+    return ( \%map_collection, $prog_fd );
 }
 
 1;

@@ -80,7 +80,7 @@ sub parse_elf {
     $elf->{e_type}    = $e_type;
     $elf->{e_machine} = $e_machine;
     $elf->{e_machine_name}
-        = Sys::Ebpf::elf::MachineType->get_machine_name($e_machine);
+        = Sys::Ebpf::Elf::MachineType->get_machine_name($e_machine);
     $elf->{e_version}   = $e_version;
     $elf->{e_entry}     = $e_entry;
     $elf->{e_phoff}     = $e_phoff;

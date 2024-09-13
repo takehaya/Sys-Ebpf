@@ -175,8 +175,8 @@ sub get_imm     { $_[0]->{imm} }
 sub deserialize_128bit_instruction {
     my ($binary) = @_;
 
-    my $high = Sys::Ebpf::asm->deserialize( substr( $binary, 0, 8 ) );
-    my $low  = Sys::Ebpf::asm->deserialize( substr( $binary, 8, 8 ) );
+    my $high = Sys::Ebpf::Asm->deserialize( substr( $binary, 0, 8 ) );
+    my $low  = Sys::Ebpf::Asm->deserialize( substr( $binary, 8, 8 ) );
 
     return ( $high, $low );
 }
