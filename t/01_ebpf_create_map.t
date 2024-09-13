@@ -5,7 +5,6 @@ use utf8;
 use Test::More import => [qw( done_testing is ok plan )];
 
 # Load the module you're testing
-use lib '../lib';
 use Sys::Ebpf::Map;
 
 use Sys::Ebpf::Constants::BpfMapType qw( BPF_MAP_TYPE_HASH );

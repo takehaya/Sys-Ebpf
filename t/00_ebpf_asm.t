@@ -5,7 +5,6 @@ use utf8;
 use Test::More import => [qw( done_testing is is_deeply ok subtest )];
 
 # Load the module you're testing
-use lib '../lib';    # Adjust the path based on your module's location
 use Sys::Ebpf::Asm;
 
 subtest 'Test Sys::Ebpf::Asm basic functionality' => sub {

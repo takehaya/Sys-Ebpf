@@ -4,8 +4,6 @@ use utf8;
 
 use Test::More import => [qw( done_testing ok plan )];
 
-# Load the module you're testing
-use lib '../lib';    # Adjust the path based on your module's location
 use Sys::Ebpf::Asm;
 use Sys::Ebpf::Loader;
 

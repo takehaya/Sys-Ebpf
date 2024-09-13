@@ -5,7 +5,6 @@ use utf8;
 use Test::More import => [qw( done_testing is_deeply ok plan subtest )];
 use Time::HiRes qw( usleep );
 
-use lib '../lib';
 use Sys::Ebpf::Map;
 use Sys::Ebpf::Constants::BpfMapType        qw(BPF_MAP_TYPE_HASH);
 use Sys::Ebpf::Constants::BpfMapCreateFlags qw(BPF_F_NO_PREALLOC);
