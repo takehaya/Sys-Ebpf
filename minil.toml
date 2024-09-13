@@ -1,4 +1,4 @@
-name = "ebpf"
+name = "Sys-Ebpf"
 badges = ["github-actions/test.yml"]
 module_maker = "ModuleBuildTiny"
 static_install = "auto"
