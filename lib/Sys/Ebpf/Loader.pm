@@ -12,7 +12,7 @@ use Data::Dumper ();
 
 use Sys::Ebpf::Elf::Constants;
 use Sys::Ebpf::Constants::BpfCmd      qw( BPF_PROG_LOAD );
-use Sys::Ebpf::Constants::BpfProgType qw( BPF_PROG_TYPE_KPROBE );
+use Sys::Ebpf::Constants::BpfProgType qw( get_bpf_prog_type );
 use Errno                             qw( EACCES EPERM );
 use Sys::Ebpf::Syscall;
 
@@ -130,6 +130,7 @@ sub load_bpf_program_from_elf {
     my ( $self, $section_name ) = @_;
     my $bpfelf      = $self->{bpfelf};
     my $bpf_section = $self->find_section($section_name);
+    my $prog_type   = get_bpf_prog_type($section_name);
     if ( !$bpf_section ) {
         die "BPF program section '$section_name' not found in ELF file.";
     }
@@ -153,7 +154,7 @@ sub load_bpf_program_from_elf {
     );
 
     my $bpf_attrs = {
-        prog_type    => BPF_PROG_TYPE_KPROBE,
+        prog_type    => $prog_type,
         insn_cnt     => length($bpf_prog) / 8,
         insns        => $bpf_prog,
         license      => $license,

@@ -12,13 +12,14 @@ my $file   = "kprobe.o";
 my $loader = Sys::Ebpf::Loader->new($file);
 my $data   = $loader->load_elf();
 
-my ( $map_data, $prog_fd ) = $loader->load_bpf("kprobe/sys_execve");
+my $kprobe_fn = "kprobe/sys_execve";
+
+my ( $map_data, $prog_fd ) = $loader->load_bpf($kprobe_fn);
 print "prog_fd: $prog_fd\n";
 print Dumper($map_data);
 my $map_kprobe_map = $map_data->{kprobe_map};
 $map_kprobe_map->{key_schema}   = [ [ 'kprobe_map_key',   'uint32' ], ];
 $map_kprobe_map->{value_schema} = [ [ 'kprobe_map_value', 'uint64' ], ];
-my $kprobe_fn = "kprobe/sys_execve";
 
 # Kprobeをアタッチ
 my $kprobe_info
