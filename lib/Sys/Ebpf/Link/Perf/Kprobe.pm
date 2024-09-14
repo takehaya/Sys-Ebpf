@@ -3,23 +3,21 @@ package Sys::Ebpf::Link::Perf::Kprobe;
 use strict;
 use warnings;
 use utf8;
-
-use POSIX;
-use Fcntl;
-use IO::Handle;
-use Sys::Ebpf::Link::Perf::Arch qw( platform_prefix );
 use open ':std', ':encoding(UTF-8)';
 
-use constant {
-    PERF_EVENT_IOC_ENABLE  => 0x2400,
-    PERF_EVENT_IOC_DISABLE => 0x2401,
-    PERF_EVENT_IOC_SET_BPF => 0x40042408,
-    PERF_TYPE_TRACEPOINT   => 2,
-    PERF_SAMPLE_RAW        => 1 << 10,
-    PERF_FLAG_FD_CLOEXEC   => 0x00000008,
-    SYS_perf_event_open    => 298,
-    SYS_ioctl              => 16,
-};
+use Sys::Ebpf::Link::Perf::Arch qw( platform_prefix );
+use Sys::Ebpf::Syscall;
+use Sys::Ebpf::Link::Perf::Constants::PerfEventIoctl qw(
+    PERF_EVENT_IOC_ENABLE
+    PERF_EVENT_IOC_DISABLE
+    PERF_EVENT_IOC_SET_BPF
+);
+
+use Sys::Ebpf::Link::Perf::Constants::PerfEvent qw(
+    PERF_TYPE_TRACEPOINT
+    PERF_SAMPLE_RAW
+    PERF_FLAG_FD_CLOEXEC
+);
 
 sub attach_kprobe {
     my ( $prog_fd, $kprobe_fn ) = @_;
@@ -52,15 +50,13 @@ sub attach_kprobe {
         die "kprobe_events file not found";
     }
 
-    print "kprobe_events: $kprobe_events\n";
-    print "p:$event_name $func_name\n";
-
     # Create kprobe event
-    open my $fh, '>>', $kprobe_events or die "Cannot open kprobe_events: $!";
-    $fh->autoflush(1);
-    print $fh "p:$event_name $func_name\n"
+    open my $kprobe_fh, '>>', $kprobe_events
+        or die "Cannot open kprobe_events: $!";
+    $kprobe_fh->autoflush(1);
+    print $kprobe_fh "p:$event_name $func_name\n"
         or die "Failed to write to kprobe_events: $!";
-    close $fh or warn "Failed to close kprobe_events: $!";
+    close $kprobe_fh or warn "Failed to close kprobe_events: $!";
 
     # Obtain event ID
     my $id_file = $kprobe_events;
@@ -73,33 +69,32 @@ sub attach_kprobe {
     chomp $id;
     close $id_fh;
 
-    my $pack_str = "L" . # type, __u32
-        "L" .            # size, __u32
-        "Q" .            # config, __u64
-        "Q" .            # sample_period, __u64
-        "Q" .            # sample_type, __u64
-        "Q" .            # read_format, __u64
-        "Q" .            # Bit field (disabled, inherit, etc.), __u64
-        "L" .            # wakeup_events, __u32
-        "L" .            # bp_type, __u32
-        "Q" .            # config1 (bp_addr / kprobe_func / uprobe_path), __u64
-        "Q" .            # config2 (bp_len / kprobe_addr / probe_offset), __u64
-        "Q" .            # branch_sample_type, __u64
-        "Q" .            # sample_regs_user, __u64
-        "L" .            # sample_stack_user, __u32
-        "L" .            # clockid, __s32
-        "Q" .            # sample_regs_intr, __u64
-        "L" .            # aux_watermark, __u32
-        "S" .            # sample_max_stack, __u16
-        "S" .            # __reserved_2, __u16
-        "L" .            # aux_sample_size, __u32
-        "L" .            # __reserved_3, __u32
-        "Q" .            # sig_data, __u64
-        "Q";             # config3, __u64
+    my $pack_str = "L" .    # type, __u32
+        "L" .               # size, __u32
+        "Q" .               # config, __u64
+        "Q" .               # sample_period, __u64
+        "Q" .               # sample_type, __u64
+        "Q" .               # read_format, __u64
+        "Q" .               # Bit field (disabled, inherit, etc.), __u64
+        "L" .               # wakeup_events, __u32
+        "L" .               # bp_type, __u32
+        "Q" .    # config1 (bp_addr / kprobe_func / uprobe_path), __u64
+        "Q" .    # config2 (bp_len / kprobe_addr / probe_offset), __u64
+        "Q" .    # branch_sample_type, __u64
+        "Q" .    # sample_regs_user, __u64
+        "L" .    # sample_stack_user, __u32
+        "L" .    # clockid, __s32
+        "Q" .    # sample_regs_intr, __u64
+        "L" .    # aux_watermark, __u32
+        "S" .    # sample_max_stack, __u16
+        "S" .    # __reserved_2, __u16
+        "L" .    # aux_sample_size, __u32
+        "L" .    # __reserved_3, __u32
+        "Q" .    # sig_data, __u64
+        "Q";     # config3, __u64
     my $attr_size = 0;
     $attr_size += { C => 1, S => 2, L => 4, Q => 8 }->{$_}
         for split //, $pack_str;
-    print "attr_size: $attr_size\n";
     my $attr = pack(
         $pack_str,
         PERF_TYPE_TRACEPOINT,    # type, __u32
@@ -133,9 +128,8 @@ sub attach_kprobe {
     my $group_fd   = -1;
     my $flags      = PERF_FLAG_FD_CLOEXEC;
 
-    my $perf_fd
-        = syscall( SYS_perf_event_open, $attr, $target_pid, $cpu, $group_fd,
-        $flags );
+    my $perf_fd = syscall( Sys::Ebpf::Syscall::SYS_perf_event_open(),
+        $attr, $target_pid, $cpu, $group_fd, $flags );
     if ( $perf_fd < 0 ) {
         my $errno     = $! + 0;
         my $error_msg = $!;
@@ -143,34 +137,29 @@ sub attach_kprobe {
             $error_msg, $errno );
     }
 
-    print "perf_event_open successful. File descriptor: $perf_fd\n";
-
     # Attach BPF program to perf event
     $! = 0;    # reset errno
-    my $res
-        = syscall( &SYS_ioctl, $perf_fd, PERF_EVENT_IOC_SET_BPF, $prog_fd );
+    my $res = syscall(
+        Sys::Ebpf::Syscall::SYS_ioctl(), $perf_fd,
+        PERF_EVENT_IOC_SET_BPF,          $prog_fd
+    );
     my $errno = $! + 0;
-    print "ioctl res: $res\n";
     if ( !defined $res || $res < 0 ) {
         my $error_msg = $!;
         die sprintf( "Failed to attach BPF program: %s (errno: %d)\n",
             $error_msg, $errno );
     }
 
-    print "BPF program attached successfully\n";
-
     # Enable perf event
-    $!     = 0;    # reset errno
-                   # $res = ioctl($perf_fh, PERF_EVENT_IOC_ENABLE, 0)|| -1;
-    $res   = syscall( &SYS_ioctl, $perf_fd, PERF_EVENT_IOC_ENABLE, 0 );
+    $!   = 0;                                          # reset errno
+    $res = syscall( Sys::Ebpf::Syscall::SYS_ioctl(),
+        $perf_fd, PERF_EVENT_IOC_ENABLE, 0 );
     $errno = $! + 0;
     if ( !defined $res || $res < 0 ) {
         my $error_msg = $!;
         die sprintf( "Failed to enable perf event: %s (errno: %d)\n",
             $error_msg, $errno );
     }
-
-    print "perf event enabled successfully\n";
 
     # Return information necessary for detachment
     return {
@@ -181,16 +170,6 @@ sub attach_kprobe {
     };
 }
 
-sub check_prog_fd {
-    my ($prog_fd) = @_;
-    return 0 if $prog_fd < 0;
-
-    my $flags = fcntl( $prog_fd, F_GETFL, 0 );
-    return 0 if !defined $flags || $flags < 0;
-
-    return 1;
-}
-
 sub detach_kprobe {
     my ($kprobe_info) = @_;
 
@@ -199,7 +178,8 @@ sub detach_kprobe {
     my $kprobe_events = $kprobe_info->{kprobe_events};
 
     # Disable perf event
-    my $res = syscall( SYS_ioctl, $perf_fd, PERF_EVENT_IOC_DISABLE, 0 );
+    my $res = syscall( Sys::Ebpf::Syscall::SYS_ioctl(),
+        $perf_fd, PERF_EVENT_IOC_DISABLE(), 0 );
     if ( $res != 0 ) {
         warn "Failed to disable perf event: $!";
     }
@@ -210,7 +190,8 @@ sub detach_kprobe {
     # Remove kprobe event
     open my $fh, '>>', $kprobe_events or warn "Cannot open kprobe_events: $!";
     $fh->autoflush(1);
-    print $fh "-:$event_name\n" or warn "Failed to write to kprobe_events: $!";
-    close $fh                   or warn "Failed to close kprobe_events: $!";
+    print $fh "-:$event_name\n"
+        or warn "Failed to write to kprobe_events: $!";
+    close $fh or warn "Failed to close kprobe_events: $!";
 }
 1;

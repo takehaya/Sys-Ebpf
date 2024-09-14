@@ -5,7 +5,7 @@ use utf8;
 use Test::More import => [qw( done_testing is is_deeply ok subtest )];
 
 # Load the module you're testing
-use Sys::Ebpf::Asm;
+use Sys::Ebpf::Asm ();
 
 subtest 'Test Sys::Ebpf::Asm basic functionality' => sub {
     my $Asm = Sys::Ebpf::Asm->new(
