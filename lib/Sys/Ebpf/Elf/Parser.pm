@@ -6,8 +6,9 @@ use utf8;
 
 our $VERSION = $Sys::Ebpf::VERSION;
 
-use Sys::Ebpf::Elf::SectionType qw( SHT_REL SHT_RELA );
-use Sys::Ebpf::Elf::MachineType qw( EM_BPF );
+use Sys::Ebpf::Elf::Constants;
+
+use Sys::Ebpf::Elf::MachineType ();
 
 # elf64形式はこの通り
 # cf. https://refspecs.linuxfoundation.org/elf/gabi4+/ch4.eheader.html
@@ -218,8 +219,8 @@ sub parse_relocations {
     my %relocations;
 
     for my $section (@$sections) {
-        unless ( $section->{sh_type} == SHT_REL
-            || $section->{sh_type} == SHT_RELA )
+        unless ( $section->{sh_type} == Sys::Ebpf::Elf::Constants::SHT_REL
+            || $section->{sh_type} == Sys::Ebpf::Elf::Constants::SHT_RELA )
         {
             next;
         }
@@ -233,7 +234,7 @@ sub parse_relocations {
 
             # リロケーションテーブルのエントリをパース
             # 64ビットの場合はQで8バイトを読み込む(TODO: 32ビットの場合はLで4バイトを読み込む)
-            if ( $sh_type == SHT_REL ) {
+            if ( $sh_type == Sys::Ebpf::Elf::Constants::SHT_REL ) {
                 ( $r_offset, $r_info )
                     = unpack( 'Q<Q<',
                     substr( $data, $offset, $section->{sh_entsize} ) );
@@ -261,7 +262,7 @@ sub parse_relocations {
 
 sub is_bpf_machine_type {
     my ( $self, $e_machine ) = @_;
-    return $e_machine == EM_BPF;
+    return $e_machine == Sys::Ebpf::Elf::Constants::EM_BPF;
 }
 
 sub find_section {

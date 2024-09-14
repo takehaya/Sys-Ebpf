@@ -10,10 +10,9 @@ use Sys::Ebpf::Map;
 
 use Data::Dumper ();
 
-use Sys::Ebpf::Elf::SectionType       qw( SHT_PROGBITS );
+use Sys::Ebpf::Elf::Constants;
 use Sys::Ebpf::Constants::BpfCmd      qw( BPF_PROG_LOAD );
 use Sys::Ebpf::Constants::BpfProgType qw( BPF_PROG_TYPE_KPROBE );
-use Sys::Ebpf::Elf::SymbolType        qw( STT_OBJECT );
 use Errno                             qw( EACCES EPERM );
 use Sys::Ebpf::Syscall;
 
@@ -64,7 +63,7 @@ sub extract_bpf_map_attributes {
     # find map section
     my $map_section;
     for my $section ( @{ $bpfelf->{sections} } ) {
-        if (   $section->{sh_type} == SHT_PROGBITS
+        if (   $section->{sh_type} == Sys::Ebpf::Elf::Constants::SHT_PROGBITS
             && $section->{sh_name} eq $section_name )
         {
             $map_section = $section;
@@ -104,7 +103,9 @@ sub extract_bpf_map_attributes {
     ## map sectionのidxと一致するst_shndxを持つシンボルを取得
     my %map_names;
     for my $symbol ( @{ $bpfelf->{symbols} } ) {
-        if ( ( $symbol->{st_info} & 0xf ) != STT_OBJECT ) {
+        if ( ( $symbol->{st_info} & 0xf )
+            != Sys::Ebpf::Elf::Constants::STT_OBJECT )
+        {
             next;
         }
         if ( $symbol->{st_shndx} == $map_section->{sh_index} ) {
