@@ -83,9 +83,9 @@ for my $name (@EXPORT_OK) {
     *{$name} = sub () { hex( sprintf( "0x%08X", $constants{$name} ) ) };
 }
 
-# Debug: Print all constants
-for my $name ( sort keys %constants ) {
-    printf( "%-30s => 0x%08X\n", $name, $constants{$name} );
-}
+# # Debug: Print all constants
+# for my $name ( sort keys %constants ) {
+#     printf( "%-30s => 0x%08X\n", $name, $constants{$name} );
+# }
 
 1;

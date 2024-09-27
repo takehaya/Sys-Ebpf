@@ -47,10 +47,3 @@ END {
         Sys::Ebpf::Link::Perf::Kprobe::detach_kprobe($kprobe_info);
     }
 }
-
-# いろいろな出力方法があるっぽい
-# print Dumper($data);
-# print "magic: $data->{magic}, $data->{class}\n";
-# while (my ($key, $value) = each %$data) {
-#     print "$key: $value\n";
-# }

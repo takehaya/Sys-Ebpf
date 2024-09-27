@@ -56,7 +56,7 @@ sub parse_elf {
     my $data        = $self->{data};
     my $byte_offset = 0;
     my $byte_range  = 16;              # ELFヘッダは16バイト
-                                       # ELFヘッダをパース
+                                       # e_identをパース
     my ( $magic, $class, $endian, $version, $abi, $abi_version )
         = unpack( 'A4C3A5C2',
         substr( $data, $byte_offset, $byte_offset + $byte_range ) );
