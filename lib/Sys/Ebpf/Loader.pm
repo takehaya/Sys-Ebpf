@@ -159,8 +159,8 @@ sub load_bpf_program_from_elf {
         insns        => $bpf_prog,
         license      => $license,
         log_level    => 3,
-        log_size     => 4096 * 16,
-        log_buf      => "\0" x ( 4096 * 16 ),
+        log_size     => 4096 * 256,
+        log_buf      => "\0" x ( 4096 * 256 ),
         kern_version => 0,
         prog_flags   => 0,
     };
@@ -237,15 +237,14 @@ sub apply_map_relocations {
         my $reloc_type = $r_info & 0xFFFFFFFF;    # リロケーションタイプを取得
 
         # シンボルテーブルからrelocation対象になり得るシンボル名を取得
-        my $symbol
-            = find_symbol_table_from_idx( $symbols_section, $sym_index );
+        my $symbol = $symbols_section->[$sym_index] // undef;
         if ( !$symbol ) {
-            print "Symbol not found for index: $sym_index\n";
+            print "Symbol Table not found for index: $sym_index\n";
             next;
         }
         my $sym_name = $symbol->{st_name};
         if ( $symbol->{st_shndx} == 0 ) {
-            print "Symbol not found for index: $sym_index\n";
+            print "Symbol Name Table not found for index: $sym_index\n";
             next;
         }
 
