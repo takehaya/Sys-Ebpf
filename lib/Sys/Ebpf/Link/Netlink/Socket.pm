@@ -42,8 +42,8 @@ sub new {
     setsockopt( $self->{sock}, SOL_NETLINK, NETLINK_EXT_ACK, $one )
         or warn "Failed to set NETLINK_EXT_ACK: $!";
 
-    # ソケットをバインド
-    my $sockaddr_nl = pack_sockaddr_nl($$);    # プロセスのPIDにバインド
+    # ソケットをバインド(procss pid bind)
+    my $sockaddr_nl = pack_sockaddr_nl($$);
     bind( $self->{sock}, $sockaddr_nl )
         or die "Failed to bind Netlink socket: $!";
 
@@ -79,6 +79,28 @@ sub receive_message {
 sub close {
     my ($self) = @_;
     close( $self->{sock} ) if $self->{sock};
+}
+
+# helper functions
+
+sub get_error_message {
+    my ($response) = @_;
+    my $offset     = NLMSG_HDRLEN + 4;    # After error code
+    my $len        = length($response);
+
+    if ( $len > $offset ) {
+        my $attr_data = substr( $response, $offset );
+        while ( length($attr_data) >= NLA_HDRLEN ) {
+            my ( $nla_len, $nla_type ) = unpack( 'S S', $attr_data );
+            my $payload
+                = substr( $attr_data, NLA_HDRLEN, $nla_len - NLA_HDRLEN );
+            if ( $nla_type == 1 ) {    # NLMSGERR_ATTR_MSG
+                return unpack( 'Z*', $payload );
+            }
+            $attr_data = substr( $attr_data, ( $nla_len + 3 ) & ~3 );
+        }
+    }
+    return "";
 }
 
 # cf. https://github.com/torvalds/linux/blob/3efc57369a0ce8f76bf0804f7e673982384e4ac9/include/uapi/linux/netlink.h#L37
