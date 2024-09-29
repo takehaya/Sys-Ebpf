@@ -4,27 +4,29 @@ use strict;
 use warnings;
 use IO::Interface::Simple ();
 use Sys::Ebpf::Link::Netlink::Socket;
+use Sys::Ebpf::Link::Netlink::Constants::Iflink qw(
+    IFLA_XDP
+    IFLA_XDP_FD
+    IFLA_XDP_ATTACHED
+    IFLA_XDP_FLAGS
+    XDP_FLAGS_UPDATE_IF_NOEXIST
+    XDP_FLAGS_SKB_MODE
+    XDP_FLAGS_DRV_MODE
+);
 use Socket qw( AF_UNSPEC );
 use Errno  ();
 
 # 定数の定義
 use constant {
-    RTM_SETLINK                 => 19,
-    IFLA_XDP                    => 43,
-    IFLA_XDP_FD                 => 1,
-    IFLA_XDP_ATTACHED           => 2,
-    IFLA_XDP_FLAGS              => 3,
-    NLA_F_NESTED                => 0x8000,
-    XDP_FLAGS_UPDATE_IF_NOEXIST => 1 << 0,
-    XDP_FLAGS_SKB_MODE          => 1 << 1,
-    XDP_FLAGS_DRV_MODE          => 1 << 2,
-    NLM_F_REQUEST               => 0x0001,
-    NLM_F_ACK                   => 0x0004,
-    NLMSG_HDRLEN                => 16,
-    NLA_HDRLEN                  => 4,
-    NETLINK_ROUTE               => 0,        # NETLINK_ROUTEの定義
-    NLMSG_ERROR                 => 2,        # NLMSG_ERRORの定義
-    IFF_UP                      => 1 << 0,
+    RTM_SETLINK   => 19,
+    NLA_F_NESTED  => 0x8000,
+    NLM_F_REQUEST => 0x0001,
+    NLM_F_ACK     => 0x0004,
+    NLMSG_HDRLEN  => 16,
+    NLA_HDRLEN    => 4,
+    NETLINK_ROUTE => 0,        # NETLINK_ROUTEの定義
+    NLMSG_ERROR   => 2,        # NLMSG_ERRORの定義
+    IFF_UP        => 1 << 0,
 };
 
 # ヘルパー関数をインポート

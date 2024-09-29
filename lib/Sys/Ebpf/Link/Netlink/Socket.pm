@@ -6,7 +6,6 @@ use Socket qw( SOCK_RAW );
 use Errno  ();
 use Exporter 'import';
 
-# エクスポートする関数をリストに追加
 our @EXPORT_OK
     = qw(pack_sockaddr_nl pack_nlattr pack_nlmsghdr pack_ifinfomsg);
 
@@ -49,9 +48,8 @@ sub send_message {
     my ( $self, $message ) = @_;
 
     # カーネル（pid 0）にメッセージを送信
-    my $sockaddr_nl = pack_sockaddr_nl(0);     # pid=0（カーネル）
-
-    my $bytes_sent = send( $self->{sock}, $message, 0, $sockaddr_nl );
+    my $sockaddr_nl = pack_sockaddr_nl(0);
+    my $bytes_sent  = send( $self->{sock}, $message, 0, $sockaddr_nl );
     unless ($bytes_sent) {
         die "Failed to send Netlink message: $!";
     }
@@ -77,15 +75,19 @@ sub close {
     close( $self->{sock} ) if $self->{sock};
 }
 
-# ヘルパー関数
-
-# sockaddr_nlをパック
+# cf. https://github.com/torvalds/linux/blob/3efc57369a0ce8f76bf0804f7e673982384e4ac9/include/uapi/linux/netlink.h#L37
+# typedef unsigned short __kernel_sa_family_t;
+# struct sockaddr_nl {
+# 	__kernel_sa_family_t	nl_family;	/* AF_NETLINK	*/
+# 	unsigned short	nl_pad;		/* zero		*/
+# 	__u32		nl_pid;		/* port ID	*/
+#   __u32		nl_groups;	/* multicast groups mask */
+# };
 sub pack_sockaddr_nl {
     my ($pid) = @_;
     return pack( 'S x2 L L', AF_NETLINK, $pid, 0 );
 }
 
-# Netlink属性をパック
 # cf. https://github.com/torvalds/linux/blob/3efc57369a0ce8f76bf0804f7e673982384e4ac9/include/uapi/linux/netlink.h#L229
 # /*
 #  *  <------- NLA_HDRLEN ------> <-- NLA_ALIGN(payload)-->
@@ -105,12 +107,11 @@ sub pack_nlattr {
     my $nla_padded_len = ( $nla_len + 3 ) & ~3;            # 4バイト境界にアライン
     my $padding        = "\0" x ( $nla_padded_len - $nla_len );    # パディング
     return
-          pack( 'S< S<', $nla_padded_len, $type )
+          pack( 'S S', $nla_padded_len, $type )
         . $payload
         . $padding;    # パディング後の長さでパック
 }
 
-# Netlinkメッセージヘッダーをパック
 # cf. https://github.com/torvalds/linux/blob/3efc57369a0ce8f76bf0804f7e673982384e4ac9/include/uapi/linux/netlink.h#L52
 # /**
 #  * struct nlmsghdr - fixed format metadata header of Netlink messages
@@ -132,7 +133,15 @@ sub pack_nlmsghdr {
     return pack( 'L S S L L', $len, $type, $flags, $seq, $pid );
 }
 
-# ifinfomsgをパック
+# cf. https://github.com/torvalds/linux/blob/3efc57369a0ce8f76bf0804f7e673982384e4ac9/include/uapi/linux/rtnetlink.h#L561
+# struct ifinfomsg {
+# 	unsigned char	ifi_family;
+# 	unsigned char	__ifi_pad;
+# 	unsigned short	ifi_type;		/* ARPHRD_* */
+# 	int		ifi_index;		/* Link index	*/
+# 	unsigned	ifi_flags;		/* IFF_* flags	*/
+# 	unsigned	ifi_change;		/* IFF_* change mask */
+# };
 sub pack_ifinfomsg {
     my ( $family, $type, $index, $flags, $change ) = @_;
     return pack( 'C C S I I I', $family, 0, $type, $index, $flags, $change );
