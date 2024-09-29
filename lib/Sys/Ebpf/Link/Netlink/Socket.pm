@@ -6,20 +6,26 @@ use Socket qw( SOCK_RAW );
 use Errno  ();
 use Exporter 'import';
 
-our @EXPORT_OK
-    = qw(pack_sockaddr_nl pack_nlattr pack_nlmsghdr pack_ifinfomsg);
+use Sys::Ebpf::Link::Netlink::Constants::Netlink qw(
+    NETLINK_ROUTE
+    NLMSG_HDRLEN
+    NLA_HDRLEN
+    NLM_F_REQUEST
+    NLM_F_ACK
+    NETLINK_EXT_ACK
+);
+use Sys::Ebpf::Link::Netlink::Constants::Socket qw(
+    PF_NETLINK
+    AF_NETLINK
+    SOL_NETLINK
+);
 
-use constant {
-    NETLINK_ROUTE   => 0,
-    NLMSG_HDRLEN    => 16,
-    NLA_HDRLEN      => 4,
-    NLM_F_REQUEST   => 0x0001,
-    NLM_F_ACK       => 0x0004,
-    PF_NETLINK      => 16,
-    AF_NETLINK      => 16,
-    SOL_NETLINK     => 270,
-    NETLINK_EXT_ACK => 11,
-};
+our @EXPORT_OK = qw(
+    pack_sockaddr_nl
+    pack_nlattr
+    pack_nlmsghdr
+    pack_ifinfomsg
+);
 
 sub new {
     my ( $class, %args ) = @_;

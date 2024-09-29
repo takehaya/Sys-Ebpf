@@ -3,7 +3,8 @@ package Sys::Ebpf::Link::Netlink::Xdp;
 use strict;
 use warnings;
 use IO::Interface::Simple ();
-use Sys::Ebpf::Link::Netlink::Socket;
+use Sys::Ebpf::Link::Netlink::Socket
+    qw(pack_nlattr pack_nlmsghdr pack_ifinfomsg);
 use Sys::Ebpf::Link::Netlink::Constants::Iflink qw(
     IFLA_XDP
     IFLA_XDP_FD
@@ -13,20 +14,23 @@ use Sys::Ebpf::Link::Netlink::Constants::Iflink qw(
     XDP_FLAGS_SKB_MODE
     XDP_FLAGS_DRV_MODE
 );
+use Sys::Ebpf::Link::Netlink::Constants::Netlink qw(
+    NLA_F_NESTED
+    NLM_F_REQUEST
+    NLM_F_ACK
+    NLMSG_HDRLEN
+    NLA_HDRLEN
+    NETLINK_ROUTE
+    NLMSG_ERROR
+);
+
 use Socket qw( AF_UNSPEC );
 use Errno  ();
 
 # 定数の定義
 use constant {
-    RTM_SETLINK   => 19,
-    NLA_F_NESTED  => 0x8000,
-    NLM_F_REQUEST => 0x0001,
-    NLM_F_ACK     => 0x0004,
-    NLMSG_HDRLEN  => 16,
-    NLA_HDRLEN    => 4,
-    NETLINK_ROUTE => 0,        # NETLINK_ROUTEの定義
-    NLMSG_ERROR   => 2,        # NLMSG_ERRORの定義
-    IFF_UP        => 1 << 0,
+    RTM_SETLINK => 19,
+    IFF_UP      => 1 << 0,
 };
 
 # ヘルパー関数をインポート
