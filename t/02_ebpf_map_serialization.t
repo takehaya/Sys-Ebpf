@@ -14,12 +14,14 @@ my $map = Sys::Ebpf::Map->new(
         [ 'uint16_id', 'uint16[2]' ],
         [ 'uint32_id', 'uint32' ],
         [ 'uint64_id', 'uint64' ],
+        [ 'string_id', 'string[128]' ],
     ],
     value_schema => [
         [ 'uint8_value',  'uint8[4]' ],
         [ 'uint16_value', 'uint16[2]' ],
         [ 'uint32_value', 'uint32' ],
         [ 'uint64_value', 'uint64' ],
+        [ 'string_value', 'string[128]' ],
     ],
 );
 
@@ -37,11 +39,32 @@ subtest '_match_uint_or_uint_array tests' => sub {
         { type => 'uint16[4]', bitsize => 16, array_size => 4 },
         { type => 'uint32[4]', bitsize => 32, array_size => 4 },
         { type => 'uint64[4]', bitsize => 64, array_size => 4 },
+
     );
 
     for my $case (@test_cases) {
         my ( $bit_size, $array_size )
             = Sys::Ebpf::Map::_match_uint_or_uint_array( $case->{type} );
+        is( $bit_size, $case->{bitsize},
+            "Correct bit size for $case->{type}" );
+        is( $array_size, $case->{array_size},
+            "Correct array size for $case->{type}" );
+    }
+};
+
+subtest '_match_string tests' => sub {
+    my @test_cases = (
+        { type => 'string[128]', bitsize => 8, array_size => 128 },
+        { type => 'string[64]',  bitsize => 8, array_size => 64 },
+        { type => 'string[32]',  bitsize => 8, array_size => 32 },
+        { type => 'string[16]',  bitsize => 8, array_size => 16 },
+        { type => 'string[8]',   bitsize => 8, array_size => 8 },
+        { type => 'string[1]',   bitsize => 8, array_size => 1 },
+    );
+
+    for my $case (@test_cases) {
+        my ( $bit_size, $array_size )
+            = Sys::Ebpf::Map::_match_string( $case->{type} );
         is( $bit_size, $case->{bitsize},
             "Correct bit size for $case->{type}" );
         is( $array_size, $case->{array_size},
@@ -64,6 +87,10 @@ subtest '_pack_value and _unpack_value tests' => sub {
             value    => 1234567890,
             expected => pack( 'Q', 1234567890 )
         },
+        {   type     => 'string[128]',
+            value    => 'test',
+            expected => pack( 'A128', 'test' )
+        },
     );
 
     for my $case (@test_cases) {
@@ -84,10 +111,11 @@ subtest '_serialize and _deserialize tests' => sub {
         uint16_id => [ 256, 512 ],
         uint32_id => 12345,
         uint64_id => 1234567890,
+        string_id => 'test',
     };
 
     my $serialized = $map->_serialize( $test_data, $map->{key_schema} );
-    is( length($serialized), 20, "Serialized key has correct length" );
+    is( length($serialized), 148, "Serialized key has correct length" );
 
     my $deserialized = $map->_deserialize( $serialized, $map->{key_schema} );
     is_deeply( $deserialized, $test_data,

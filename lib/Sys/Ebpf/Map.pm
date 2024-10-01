@@ -184,6 +184,11 @@ sub raw_get_next_key {
     my $next_key = "\0" x $self->{key_size};
     my $res = syscall_bpf_map_elem( BPF_MAP_GET_NEXT_KEY(), $self->{map_fd},
         $key, $next_key, 0 );
+    if ( $res < 0 ) {
+        my $errno = $!;
+        warn "Failed to get_next_key BPF map entry with key ",
+            unpack( "H*", $key ), ": $errno ($!)\n";
+    }
     return $res == 0 ? $next_key : undef;
 }
 
@@ -232,10 +237,10 @@ sub delete {
 
 sub get_next_key {
     my ( $self, $key ) = @_;
-    my $packed_key
-        = defined $key
-        ? $self->_serialize( $key, $self->{key_schema} )
-        : undef;
+    if ( !defined $self->{key_schema} || !defined $self->{value_schema} ) {
+        die "Key and value schema must be defined to use update method\n";
+    }
+    my $packed_key      = $self->_serialize( $key, $self->{key_schema} );
     my $next_packed_key = $self->raw_get_next_key($packed_key);
     return undef unless defined $next_packed_key;
     return $self->_deserialize( $next_packed_key, $self->{key_schema} );
@@ -290,6 +295,11 @@ sub _match_uint_or_uint_array {
     return $type =~ /^uint(\d+)(?:\[(\d+)\])?$/ ? ( $1, $2 ) : ();
 }
 
+sub _match_string {
+    my ($type) = @_;
+    return $type =~ /^string\[(\d+)\]$/ ? ( 8, $1 ) : ();
+}
+
 sub _get_type_size {
     my ($type) = @_;
 
@@ -299,8 +309,8 @@ sub _get_type_size {
             return ( $bit_size / 8 ) * $array_size;
         }
     }
-    elsif ( $type =~ /^string\((\d+)\)$/ ) {
-        return $1;
+    elsif ( ( $bit_size, $array_size ) = _match_string($type) ) {
+        return ( $bit_size / 8 ) * $array_size;
     }
 
     die "Unsupported type: $type";
@@ -315,6 +325,10 @@ sub _pack_value {
         return pack( "$pack_char$array_size", @$value )
             if ref $value eq 'ARRAY';
         return pack( $pack_char, $value );
+    }
+    elsif ( ( $bit_size, $array_size ) = _match_string($type) ) {
+        return pack( "A$array_size", $value )
+            if length($value) <= $array_size;
     }
 
     die "Unsupported type: $type";
@@ -346,6 +360,12 @@ sub _unpack_value {
 
         # Otherwise, return the single value
         return ( $values[0], $offset + $byte_size );
+    }
+    elsif ( ( $bit_size, $array_size ) = _match_string($type) ) {
+        my $value
+            = unpack( "A$array_size", substr( $data, $offset, $array_size ) );
+        my $len = length($value);
+        return ( $value, $offset + $len );
     }
 
     die "Unsupported type: $type";
