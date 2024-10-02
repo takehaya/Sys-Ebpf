@@ -8,11 +8,11 @@ use lib '../../lib';
 use Sys::Ebpf::Loader;
 use Sys::Ebpf::Link::Netlink::Xdp;
 
-my $file   = "xdp_dport_counter.o";
+my $file   = "xdp_count_8080_port.o";
 my $loader = Sys::Ebpf::Loader->new($file);
 my $data   = $loader->load_elf();
 
-my $xdp_fn = "xdp/xdp_pass";
+my $xdp_fn = "xdp/xdp_count_8080_port";
 
 my ( $map_data, $prog_fd ) = $loader->load_bpf($xdp_fn);
 my $map_xdp_map = $map_data->{xdp_map};
