@@ -28,3 +28,8 @@ pre-commit run -a
 ```shell
 sudo PERL5LIB=$PERL5LIB $(which minil) test
 ```
+
+## bpf printk
+```shell
+sudo cat /sys/kernel/debug/tracing/trace_pipe
+```

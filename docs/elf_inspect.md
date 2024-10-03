@@ -2,7 +2,7 @@
 
 ## elfの中身を眺める
 ```shell
-$  readelf -a kprobe.o
+$ readelf -a kprobe.o
 ELF Header:
   Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 
   Class:                             ELF64
