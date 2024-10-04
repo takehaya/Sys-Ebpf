@@ -2,6 +2,5 @@ Revision history for Perl extension ebpf
 
 {{$NEXT}}
 
-0.02 2024-10-04T11:10:27Z
-
-    - original version
+0.03 2024-10-04T13:55:42Z
+ - update docs
