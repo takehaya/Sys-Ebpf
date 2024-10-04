@@ -211,8 +211,6 @@ sub load_bpf_program {
         warn "Log buffer content:\n", $attrs->{log_buf}, "\n";
         die "BPF program load failed: $!\n";
     }
-    print "BPF program loaded successfully with FD: $fd\n";
-
     return $fd;
 }
 
@@ -259,15 +257,11 @@ sub apply_map_relocations {
         }
         if ( defined $map_fd ) {
 
-            # # 指定されたオフセット位置にある `lddw` 命令（16バイト）を取得
+            # 指定されたオフセット位置にある `lddw` 命令（16バイト）を取得
             my $bpf_insn
                 = substr( $self->{reader}->{raw_elf_data}, $r_offset, 16 )
                 ;    # 16バイトを取得
             my $bpf_insn_len = length($bpf_insn);
-            print "Before relocation (offset $r_offset): "
-                . unpack( 'H*', $bpf_insn )
-                . "\n";    # デバッグ出力
-
             my ( $high, $low )
                 = Sys::Ebpf::Asm::deserialize_128bit_instruction($bpf_insn);
 
@@ -287,12 +281,6 @@ sub apply_map_relocations {
             # 書き換えた後の命令を出力
             my $after_bpf_insn
                 = substr( $self->{reader}->{raw_elf_data}, $r_offset, 16 );
-            print "After relocation (offset $r_offset): "
-                . unpack( 'H*', $after_bpf_insn )
-                . "\n";    # デバッグ出力
-        }
-        else {
-            print "No matching map found for symbol: $sym_name\n";
         }
     }
 }
@@ -322,7 +310,6 @@ sub load_bpf {
     }
 
     # リロケーションを適用
-    print ".rel" . $section_name . "\n";
     my $reloc_section = $bpfelf->{relocations}{ ".rel" . $section_name };
     my $prob_section
         = find_symbol_table_from_name( $bpfelf->{sections}, $section_name );
