@@ -64,7 +64,7 @@
          "web" : "https://github.com/takehaya/perl-ebpf"
       }
    },
-   "version" : "0.01",
+   "version" : "0.02",
    "x_serialization_backend" : "JSON::PP version 4.06",
    "x_static_install" : 1
 }
