@@ -16,25 +16,36 @@ ebpf - Pure-Perl interface for eBPF (extended Berkeley Packet Filter)
 
 =head1 SYNOPSIS
 
-  use Sys::Ebpf::;
+  use strict;
+  use warnings;
+  use utf8;
+  use Sys::Ebpf::Loader;
+  use Sys::Ebpf::Link::Perf::Kprobe;
 
-  # Create a new eBPF loader
-  my $loader = Sys::Ebpf::loader->new();
+  my $file   = "kprobe.o";
+  my $loader = Sys::Ebpf::Loader->new($file);
+  my $data   = $loader->load_elf();
+  my $kprobe_fn = "kprobe/sys_execve";
 
-  # Load a BPF map
-  my $map_fd = $loader->load_bpf_map({
-      map_type => Sys::Ebpf::Constants::bpf_map_type::BPF_MAP_TYPE_ARRAY,
-      key_size => 4,
-      value_size => 8,
-      max_entries => 1,
-      map_flags => 0,
-      map_name => "my_map"
-  });
+  my ( $map_data, $prog_fd ) = $loader->load_bpf($kprobe_fn);
+  my $map_kprobe_map = $map_data->{kprobe_map};
+  $map_kprobe_map->{key_schema}   = [ [ 'kprobe_map_key',   'uint32' ], ];
+  $map_kprobe_map->{value_schema} = [ [ 'kprobe_map_value', 'uint64' ], ];
 
-  # Pin the map to a file
-  $loader->pin_bpf_map($map_fd, "/sys/fs/bpf/my_map");
+  my $kprobe_info = Sys::Ebpf::Link::Perf::Kprobe::attach_kprobe( $prog_fd, $kprobe_fn );
 
-  # TBA...
+  while (1) {
+      my $key   = { kprobe_map_key => 0 };
+      my $value = $map_kprobe_map->lookup($key);
+      if ( defined $value ) {
+          print Dumper($value);
+          printf "%s called %d times\n", $kprobe_fn, $value->{kprobe_map_value};
+      }
+      else {
+          warn "Failed to read map value\n";
+      }
+      sleep(1);
+  }
 
 =head1 DESCRIPTION
 
@@ -46,13 +57,17 @@ This module includes several submodules:
 
 =over 6
 
-=item * C<Sys::Ebpf::loader> - For loading eBPF programs and maps
+=item * C<Sys::Ebpf::Loader> - For loading eBPF programs and maps
 
-=item * C<Sys::Ebpf::asm> - eBPF assembly helpers
+=item * C<Sys::Ebpf::Asm> - eBPF assembly helpers
 
-=item * C<Sys::Ebpf::reader> - For reading ELF files
+=item * C<Sys::Ebpf::Reader> - For reading ELF files
 
-=item * C<Sys::Ebpf::elf::parser> - For parsing ELF files
+=item * C<Sys::Ebpf::Elf::Parser> - For parsing ELF files
+
+=item * C<Sys::Ebpf::Link::Netlink> - For calling BPF-related netlink commands(e.g. XDP)
+
+=item * C<Sys::Ebpf::Link::Perf> - For calling BPF-related perf events(e.g. kprobes)
 
 =back
 
